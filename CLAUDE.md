@@ -75,10 +75,12 @@ CI is green.
 
 ## 4. How Claude works on this repo (the owner's standing requirement)
 
-- **One coordinator agent per task or phase.** It splits the work into specific,
-  self-contained subtasks, hands each to its own subagent, gives each one a clear
-  scope (the modules and files it owns), and merges and checks the results. It doesn't
-  write the bulk of the code itself.
+- **The main Claude session is the coordinator** for each task or phase (subagents
+  can't start subagents of their own). It writes a short contract for the phase (the
+  exact public APIs each part exposes), splits the work into specific, self-contained
+  subtasks, hands each to its own subagent with a clear scope (the modules and files
+  it owns), and merges and checks the results. It doesn't write the bulk of the code
+  itself.
 - **Subagents get narrow jobs**, usually one module or one feature each, with the
   module rules above in their instructions. Subagents whose files don't overlap run
   in parallel.
