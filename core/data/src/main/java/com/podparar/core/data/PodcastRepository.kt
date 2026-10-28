@@ -1,6 +1,7 @@
 package com.podparar.core.data
 
 import com.podparar.core.model.Episode
+import com.podparar.core.model.ImportResult
 import com.podparar.core.model.Podcast
 import com.podparar.core.model.RefreshResult
 import com.podparar.core.model.SearchResult
@@ -38,4 +39,17 @@ interface PodcastRepository {
     suspend fun setAutoDownload(feedUrl: String, enabled: Boolean)
 
     suspend fun unsubscribe(feedUrl: String)
+
+    /** Stores the show's own playback speed (PlaybackSpeeds.clamp'd); null clears it (use the last speed used). */
+    suspend fun setSpeed(feedUrl: String, speed: Float?)
+
+    /** Opml.write(current subscriptions). */
+    suspend fun exportOpml(): String
+
+    /**
+     * Opml.parse(opml) (IllegalArgumentException -> PodcastException(NOT_A_FEED)); subscribes to each entry not
+     * already subscribed (FeedUrls.normalize'd URL compared), one at a time, calling onProgress(done, total) after
+     * each entry (total = every entry in the file). Failures are counted, not thrown.
+     */
+    suspend fun importOpml(opml: String, onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }): ImportResult
 }

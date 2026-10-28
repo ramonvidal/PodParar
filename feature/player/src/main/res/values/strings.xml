@@ -6,4 +6,10 @@
     <string name="player_loading">Loading</string>
     <string name="player_position">Position</string>
     <string name="player_speed_description">Speed %1$s</string>
+    <string name="player_speed_remembered">Remembered for %1$s</string>
+    <string name="player_skip_back">Back %1$d seconds</string>
+    <string name="player_skip_forward">Forward %1$d seconds</string>
+    <string name="player_sleep_minutes">%1$d min</string>
+    <string name="player_sleep_turn_off">Turn off</string>
+    <string name="player_sleep_running">Sleep timer: %1$s</string>
 </resources>

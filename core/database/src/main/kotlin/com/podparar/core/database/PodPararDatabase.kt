@@ -6,7 +6,7 @@ import androidx.room.RoomDatabase
 /** Schemas are exported to core/database/schemas; every version bump needs a migration and a migration test. */
 @Database(
     entities = [PodcastEntity::class, EpisodeEntity::class, QueueEntity::class, DownloadEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 internal abstract class PodPararDatabase : RoomDatabase() {

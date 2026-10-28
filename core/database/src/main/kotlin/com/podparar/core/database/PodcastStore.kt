@@ -22,7 +22,7 @@ interface PodcastStore {
     suspend fun episodes(feedUrl: String): List<Episode>
 
     /**
-     * In one transaction: upserts the podcast (keeping the stored show's autoDownload) and stores
+     * In one transaction: upserts the podcast (keeping the stored show's autoDownload and speed) and stores
      * FeedMerge.merge(stored episodes, [episodes]). Returns the episodes that are new (ids not stored before),
      * newest first.
      */
@@ -30,6 +30,9 @@ interface PodcastStore {
 
     /** Turns auto-download on or off for that show. Unknown feed: no-op. */
     suspend fun setAutoDownload(feedUrl: String, enabled: Boolean)
+
+    /** Sets that show's own playback speed; null clears it. Unknown feed: no-op. */
+    suspend fun setSpeed(feedUrl: String, speed: Float?)
 
     /** Removes the podcast, all its episodes, their queue entries and their download rows. */
     suspend fun deletePodcast(feedUrl: String)

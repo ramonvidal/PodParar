@@ -3,7 +3,11 @@ package com.podparar.core.data
 import com.podparar.core.database.PodcastStore
 import com.podparar.core.model.Episode
 import com.podparar.core.model.FeedUrls
+import com.podparar.core.model.ImportResult
 import com.podparar.core.model.LoadError
+import com.podparar.core.model.Opml
+import com.podparar.core.model.OpmlEntry
+import com.podparar.core.model.PlaybackSpeeds
 import com.podparar.core.model.Podcast
 import com.podparar.core.model.PodcastException
 import com.podparar.core.model.RefreshResult
@@ -86,6 +90,44 @@ class DefaultPodcastRepository @Inject constructor(
 
     override suspend fun unsubscribe(feedUrl: String) {
         store.deletePodcast(feedUrl)
+    }
+
+    override suspend fun setSpeed(feedUrl: String, speed: Float?) {
+        store.setSpeed(feedUrl, speed?.let { PlaybackSpeeds.clamp(it) })
+    }
+
+    override suspend fun exportOpml(): String = Opml.write(store.observePodcasts().first())
+
+    override suspend fun importOpml(opml: String, onProgress: (done: Int, total: Int) -> Unit): ImportResult {
+        val entries: List<OpmlEntry> = try {
+            Opml.parse(opml)
+        } catch (e: IllegalArgumentException) {
+            throw PodcastException(LoadError.NOT_A_FEED, e)
+        }
+        // Compare normalized URLs so "http://x/feed" and "feed://x/feed" count as the same show.
+        val subscribed = store.podcastUrls().mapTo(HashSet()) { FeedUrls.normalize(it) ?: it }
+        var added = 0
+        var already = 0
+        var failed = 0
+        entries.forEachIndexed { index, entry ->
+            val normalized = FeedUrls.normalize(entry.feedUrl)
+            when {
+                normalized == null -> failed++
+                normalized in subscribed -> already++
+                else -> try {
+                    val podcast = subscribe(normalized)
+                    subscribed += normalized
+                    subscribed += podcast.feedUrl
+                    added++
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    failed++
+                }
+            }
+            onProgress(index + 1, entries.size)
+        }
+        return ImportResult(added = added, alreadySubscribed = already, failed = failed)
     }
 
     private companion object {

@@ -37,6 +37,7 @@ import com.podparar.feature.library.podcastRoute
 import com.podparar.feature.player.MiniPlayer
 import com.podparar.feature.player.PLAYER_ROUTE
 import com.podparar.feature.player.playerScreen
+import com.podparar.feature.settings.SETTINGS_ROUTE
 import com.podparar.feature.settings.settingsScreen
 import com.podparar.feature.update.UpdateBanner
 
@@ -108,19 +109,20 @@ fun PodPararNavHost() {
                 onOpenPodcast = { navController.navigate(podcastRoute(it)) },
                 onFindShows = { navController.navigateToTab(DISCOVER_ROUTE) },
                 onBack = { navController.popBackStack() },
+                onOpenSettings = { navController.navigate(SETTINGS_ROUTE) { launchSingleTop = true } },
             )
             discoverScreen(onOpenPodcast = { navController.navigate(podcastRoute(it)) })
             playerScreen(onClose = { navController.popBackStack() })
-            settingsScreen()
+            settingsScreen(onBack = { navController.popBackStack() })
         }
     }
 }
 
-/** A show's page belongs to Library, wherever it was opened from. */
+/** A show's page belongs to Library, wherever it was opened from, and so does Settings. */
 private fun NavDestination?.isInTab(tab: TopLevelDestination): Boolean {
     if (this == null) return false
     if (hierarchy.any { it.route == tab.route }) return true
-    return tab == TopLevelDestination.Library && route == PODCAST_ROUTE
+    return tab == TopLevelDestination.Library && (route == PODCAST_ROUTE || route == SETTINGS_ROUTE)
 }
 
 /** Switches tabs the way the bottom bar does, keeping each tab's state. */

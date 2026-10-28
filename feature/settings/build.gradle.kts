@@ -1,5 +1,6 @@
 plugins {
     id("podparar.android.feature")
+    id("podparar.android.compose.tests")
 }
 
 android {
@@ -8,4 +9,6 @@ android {
 
 dependencies {
     implementation(projects.core.settings)
+    // OPML import and export use the system file pickers.
+    implementation(libs.androidx.activity.compose)
 }

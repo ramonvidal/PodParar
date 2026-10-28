@@ -10,10 +10,13 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.podparar.core.data.DownloadRepository
 import com.podparar.core.data.EpisodeRepository
+import com.podparar.core.data.PodcastRepository
 import com.podparar.core.data.QueueRepository
 import com.podparar.core.model.NowPlaying
 import com.podparar.core.model.PlaybackRules
 import com.podparar.core.model.PlaybackSpeeds
+import com.podparar.core.model.SkipLengths
+import com.podparar.core.model.SleepTimer
 import com.podparar.core.settings.PlaybackSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -26,9 +29,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -48,6 +53,8 @@ internal class MediaControllerPlayerController @Inject constructor(
     private val settings: PlaybackSettings,
     private val queue: QueueRepository,
     private val downloads: DownloadRepository,
+    private val podcasts: PodcastRepository,
+    private val sleepTimers: SleepTimerController,
 ) : PlayerController {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -55,6 +62,14 @@ internal class MediaControllerPlayerController @Inject constructor(
 
     private val state = MutableStateFlow<NowPlaying?>(null)
     override val nowPlaying: StateFlow<NowPlaying?> = state.asStateFlow()
+
+    override val sleepTimer: StateFlow<SleepTimer?> = sleepTimers.timer
+
+    override val skipBackMs: StateFlow<Long> =
+        settings.skipBackMs.stateIn(scope, SharingStarted.Eagerly, SkipLengths.DEFAULT_BACK_MS)
+
+    override val skipForwardMs: StateFlow<Long> =
+        settings.skipForwardMs.stateIn(scope, SharingStarted.Eagerly, SkipLengths.DEFAULT_FORWARD_MS)
 
     // Touched on the main thread only.
     private var controller: MediaController? = null
@@ -106,7 +121,8 @@ internal class MediaControllerPlayerController @Inject constructor(
         val episode = episodes.getEpisode(episodeId) ?: return@enqueue
         val podcast = episodes.getPodcast(episode.podcastUrl)
         val localFile = LocalAudio.fileFor(downloads, episodeId)
-        val speed = PlaybackSpeeds.clamp(settings.speed.first())
+        // The show's own speed, else the last speed used.
+        val speed = PlaybackSpeeds.clamp(podcast?.speed ?: settings.speed.first())
         // The controller may have dropped while loading: use whichever is connected now.
         val player = connectedController() ?: return@enqueue
         saveCurrentPosition(player)
@@ -130,19 +146,35 @@ internal class MediaControllerPlayerController @Inject constructor(
 
     override fun skipBack() = enqueue { c ->
         if (c.currentMediaItem != null) {
-            c.seekTo(clampToEpisode(c, c.currentPosition - PlaybackRules.SKIP_BACK_MS))
+            val backMs = settings.skipBackMs.first()
+            // The controller may have dropped while reading the setting.
+            val player = connectedController() ?: return@enqueue
+            if (player.currentMediaItem != null) {
+                player.seekTo(clampToEpisode(player, player.currentPosition - backMs))
+            }
         }
     }
 
     override fun skipForward() = enqueue { c ->
         if (c.currentMediaItem != null) {
-            c.seekTo(clampToEpisode(c, c.currentPosition + PlaybackRules.SKIP_FORWARD_MS))
+            val forwardMs = settings.skipForwardMs.first()
+            val player = connectedController() ?: return@enqueue
+            if (player.currentMediaItem != null) {
+                player.seekTo(clampToEpisode(player, player.currentPosition + forwardMs))
+            }
         }
     }
 
     override fun setSpeed(speed: Float) {
         val clamped = PlaybackSpeeds.clamp(speed)
-        enqueue { c -> c.setPlaybackSpeed(clamped) }
+        enqueue { c ->
+            c.setPlaybackSpeed(clamped)
+            // Remembered for the loaded show, read here on the main thread.
+            val podcastUrl = c.currentMediaItem?.mediaMetadata?.extras
+                ?.getString(EpisodeMediaItems.EXTRA_PODCAST_URL)
+                ?.takeIf { it.isNotEmpty() }
+            if (podcastUrl != null) rememberShowSpeed(podcastUrl, clamped)
+        }
         scope.launch {
             try {
                 settings.setSpeed(clamped)
@@ -150,6 +182,26 @@ internal class MediaControllerPlayerController @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Couldn't remember the speed", e)
+            }
+        }
+    }
+
+    override fun setSleepTimer(minutes: Int) = sleepTimers.setMinutes(minutes)
+
+    override fun setSleepAtEndOfEpisode() = sleepTimers.setEndOfEpisode()
+
+    override fun extendSleepTimer() = sleepTimers.extend()
+
+    override fun cancelSleepTimer() = sleepTimers.cancel()
+
+    private fun rememberShowSpeed(podcastUrl: String, speed: Float) {
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) { podcasts.setSpeed(podcastUrl, speed) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Couldn't remember the show's speed", e)
             }
         }
     }

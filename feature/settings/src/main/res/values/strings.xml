@@ -1,4 +1,41 @@
 <resources>
-    <string name="settings_title">Settings</string>
-    <string name="settings_message">Playback, downloads and app update options will live here.</string>
+    <string name="settings_back">Back</string>
+    <string name="settings_playback">Playback</string>
+    <string name="settings_skip_back">Skip back</string>
+    <string name="settings_skip_forward">Skip forward</string>
+    <string name="settings_seconds">%d s</string>
+    <string name="settings_skip_silence">Skip silence</string>
+    <string name="settings_skip_silence_hint">Jump over quiet gaps in episodes</string>
+    <string name="settings_shake_to_extend">Shake to add 5 minutes</string>
+    <string name="settings_shake_to_extend_hint">While a sleep timer runs, shake the phone to keep listening</string>
+    <string name="settings_downloads">Downloads</string>
+    <string name="settings_wifi_only">Wi-Fi only</string>
+    <string name="settings_wifi_only_hint">Download episodes only on Wi-Fi</string>
+    <string name="settings_new_episode_alerts">New episode alerts</string>
+    <string name="settings_new_episode_alerts_hint">A notification when shows you follow have new episodes</string>
+    <string name="settings_your_shows">Your shows</string>
+    <string name="settings_import_opml">Import from OPML</string>
+    <string name="settings_import_opml_hint">Follow the shows in a file from another podcast app</string>
+    <string name="settings_export_opml">Export to OPML</string>
+    <string name="settings_export_opml_hint">Save the shows you follow to a file</string>
+    <string name="settings_importing">Importing…</string>
+    <string name="settings_importing_progress">Importing %1$d of %2$d…</string>
+    <string name="settings_exporting">Exporting…</string>
+    <plurals name="settings_import_added">
+        <item quantity="one">Added %d show</item>
+        <item quantity="other">Added %d shows</item>
+    </plurals>
+    <string name="settings_import_already">%d already followed</string>
+    <string name="settings_import_failed_count">%d failed</string>
+    <string name="settings_import_nothing">No shows found in that file</string>
+    <plurals name="settings_exported">
+        <item quantity="one">Exported %d show</item>
+        <item quantity="other">Exported %d shows</item>
+    </plurals>
+    <string name="settings_not_opml">That file isn\'t a list of shows (OPML).</string>
+    <string name="settings_import_failed">Couldn\'t import that file.</string>
+    <string name="settings_export_failed">Couldn\'t save the file.</string>
+    <string name="settings_about">About</string>
+    <string name="settings_app_version">PodParar %1$s</string>
+    <string name="settings_app_name">PodParar</string>
 </resources>

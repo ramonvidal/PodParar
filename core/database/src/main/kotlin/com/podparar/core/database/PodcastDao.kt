@@ -22,6 +22,9 @@ internal interface PodcastDao {
     @Query("UPDATE podcasts SET autoDownload = :enabled WHERE feedUrl = :feedUrl")
     suspend fun setAutoDownload(feedUrl: String, enabled: Boolean)
 
+    @Query("UPDATE podcasts SET speed = :speed WHERE feedUrl = :feedUrl")
+    suspend fun setSpeed(feedUrl: String, speed: Float?)
+
     @Upsert
     suspend fun upsert(podcast: PodcastEntity)
 

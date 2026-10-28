@@ -33,9 +33,14 @@ internal class RoomPodcastStore(private val db: PodPararDatabase) : PodcastStore
     override suspend fun saveFeed(feed: ParsedFeed): List<Episode> {
         val feedUrl = feed.podcast.feedUrl
         return db.withTransaction {
-            // A parsed feed never knows this phone's auto-download choice, so the stored one wins.
-            val autoDownload = podcastDao.podcast(feedUrl)?.autoDownload ?: false
-            podcastDao.upsert(feed.podcast.toEntity().copy(autoDownload = autoDownload))
+            // A parsed feed never knows this phone's auto-download or speed choices, so the stored ones win.
+            val existing = podcastDao.podcast(feedUrl)
+            podcastDao.upsert(
+                feed.podcast.toEntity().copy(
+                    autoDownload = existing?.autoDownload ?: false,
+                    speed = existing?.speed,
+                ),
+            )
             val stored = episodeDao.episodesFor(feedUrl).map { it.toModel() }
             val storedIds = stored.mapTo(HashSet()) { it.id }
             // Episodes are always stored under the podcast they were saved with.
@@ -48,6 +53,10 @@ internal class RoomPodcastStore(private val db: PodPararDatabase) : PodcastStore
 
     override suspend fun setAutoDownload(feedUrl: String, enabled: Boolean) {
         podcastDao.setAutoDownload(feedUrl, enabled)
+    }
+
+    override suspend fun setSpeed(feedUrl: String, speed: Float?) {
+        podcastDao.setSpeed(feedUrl, speed)
     }
 
     override suspend fun deletePodcast(feedUrl: String) {

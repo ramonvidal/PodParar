@@ -24,4 +24,7 @@
     <string name="downloaded">Downloaded</string>
     <string name="downloading">Downloading</string>
     <string name="download_failed">Download failed</string>
+    <string name="settings">Settings</string>
+    <string name="sleep_timer">Sleep timer</string>
+    <string name="end_of_episode">End of episode</string>
 </resources>

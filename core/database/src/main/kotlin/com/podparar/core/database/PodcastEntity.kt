@@ -14,6 +14,8 @@ internal data class PodcastEntity(
     val artworkUrl: String?,
     val lastRefreshed: Long,
     @ColumnInfo(defaultValue = "0") val autoDownload: Boolean = false,
+    /** The show's own playback speed; null = use the last speed used. */
+    val speed: Float? = null,
 )
 
 internal fun PodcastEntity.toModel(): Podcast = Podcast(
@@ -24,6 +26,7 @@ internal fun PodcastEntity.toModel(): Podcast = Podcast(
     artworkUrl = artworkUrl,
     lastRefreshed = lastRefreshed,
     autoDownload = autoDownload,
+    speed = speed,
 )
 
 internal fun Podcast.toEntity(): PodcastEntity = PodcastEntity(
@@ -34,4 +37,5 @@ internal fun Podcast.toEntity(): PodcastEntity = PodcastEntity(
     artworkUrl = artworkUrl,
     lastRefreshed = lastRefreshed,
     autoDownload = autoDownload,
+    speed = speed,
 )

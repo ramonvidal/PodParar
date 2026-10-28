@@ -27,3 +27,10 @@ internal val MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL("ALTER TABLE `podcasts` ADD COLUMN `autoDownload` INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+/** Version 4 adds each show's own playback speed (null for every existing show). Matches Room for PodcastEntity.speed. */
+internal val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `podcasts` ADD COLUMN `speed` REAL")
+    }
+}

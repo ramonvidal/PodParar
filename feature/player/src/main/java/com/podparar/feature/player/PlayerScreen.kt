@@ -1,31 +1,38 @@
 package com.podparar.feature.player
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,9 +48,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.podparar.core.model.Formats
 import com.podparar.core.model.NowPlaying
 import com.podparar.core.model.PlaybackSpeeds
+import com.podparar.core.model.SkipLengths
+import com.podparar.core.model.SleepTimer
+import com.podparar.core.model.SleepTimers
 import com.podparar.core.ui.Artwork
 import com.podparar.core.ui.EmptyState
 import com.podparar.core.ui.R as CoreUiR
+import kotlin.math.abs
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun PlayerScreen(
@@ -51,6 +64,21 @@ internal fun PlayerScreen(
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.nowPlaying.collectAsStateWithLifecycle()
+    val sleepTimer by viewModel.sleepTimer.collectAsStateWithLifecycle()
+    val skipBackMs by viewModel.skipBackMs.collectAsStateWithLifecycle()
+    val skipForwardMs by viewModel.skipForwardMs.collectAsStateWithLifecycle()
+
+    // The timer's label counts down, so the clock ticks once a second while a timed one runs.
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(sleepTimer) {
+        now = System.currentTimeMillis()
+        val timer = sleepTimer
+        while (timer != null && timer.endsAt != null) {
+            delay(1_000L)
+            now = System.currentTimeMillis()
+        }
+    }
+
     PlayerContent(
         state = state,
         onClose = onClose,
@@ -59,13 +87,22 @@ internal fun PlayerScreen(
         onSkipForward = viewModel::skipForward,
         onSeek = viewModel::seekTo,
         onSpeedChange = viewModel::setSpeed,
+        sleepTimer = sleepTimer,
+        now = now,
+        skipBackMs = skipBackMs,
+        skipForwardMs = skipForwardMs,
+        onSetSleepTimer = viewModel::setSleepTimer,
+        onSleepAtEndOfEpisode = viewModel::setSleepAtEndOfEpisode,
+        onCancelSleepTimer = viewModel::cancelSleepTimer,
     )
 }
 
 /**
  * The full player, drawn from its state alone so screenshot tests can render it: big artwork,
- * the titles, a seek bar with the elapsed and remaining time, back 10 / play-pause / forward 30,
- * and the speed. [state] null means nothing is loaded.
+ * the titles, a seek bar with the elapsed and remaining time, skip back / play-pause / skip
+ * forward (icons matching [skipBackMs] / [skipForwardMs]), the speed and the sleep timer, each
+ * opening its own bottom sheet. [state] null means nothing is loaded. [now] (epoch ms) drives
+ * the timer's countdown label.
  */
 @Composable
 internal fun PlayerContent(
@@ -77,6 +114,13 @@ internal fun PlayerContent(
     onSeek: (positionMs: Long) -> Unit,
     onSpeedChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
+    sleepTimer: SleepTimer? = null,
+    now: Long = System.currentTimeMillis(),
+    skipBackMs: Long = SkipLengths.DEFAULT_BACK_MS,
+    skipForwardMs: Long = SkipLengths.DEFAULT_FORWARD_MS,
+    onSetSleepTimer: (Int) -> Unit = {},
+    onSleepAtEndOfEpisode: () -> Unit = {},
+    onCancelSleepTimer: () -> Unit = {},
 ) {
     Column(modifier.fillMaxSize()) {
         Row(
@@ -117,6 +161,13 @@ internal fun PlayerContent(
                 onSkipForward = onSkipForward,
                 onSeek = onSeek,
                 onSpeedChange = onSpeedChange,
+                sleepTimer = sleepTimer,
+                now = now,
+                skipBackMs = skipBackMs,
+                skipForwardMs = skipForwardMs,
+                onSetSleepTimer = onSetSleepTimer,
+                onSleepAtEndOfEpisode = onSleepAtEndOfEpisode,
+                onCancelSleepTimer = onCancelSleepTimer,
             )
         }
     }
@@ -130,7 +181,16 @@ private fun NowPlayingBody(
     onSkipForward: () -> Unit,
     onSeek: (positionMs: Long) -> Unit,
     onSpeedChange: (Float) -> Unit,
+    sleepTimer: SleepTimer?,
+    now: Long,
+    skipBackMs: Long,
+    skipForwardMs: Long,
+    onSetSleepTimer: (Int) -> Unit,
+    onSleepAtEndOfEpisode: () -> Unit,
+    onCancelSleepTimer: () -> Unit,
 ) {
+    var showSpeedSheet by remember { mutableStateOf(false) }
+    var showSleepSheet by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -175,15 +235,207 @@ private fun NowPlayingBody(
             onPlayPause = onPlayPause,
             onSkipBack = onSkipBack,
             onSkipForward = onSkipForward,
+            skipBackMs = skipBackMs,
+            skipForwardMs = skipForwardMs,
         )
         Spacer(Modifier.height(8.dp))
-        val speedLabel = Formats.speedLabel(state.speed)
-        val speedDescription = stringResource(R.string.player_speed_description, speedLabel)
-        TextButton(
-            onClick = { onSpeedChange(PlaybackSpeeds.next(state.speed)) },
-            modifier = Modifier.semantics { contentDescription = speedDescription },
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(speedLabel, style = MaterialTheme.typography.titleMedium)
+            val speedLabel = Formats.speedLabel(state.speed)
+            val speedDescription = stringResource(R.string.player_speed_description, speedLabel)
+            TextButton(
+                onClick = { showSpeedSheet = true },
+                modifier = Modifier.semantics { contentDescription = speedDescription },
+            ) {
+                Text(speedLabel, style = MaterialTheme.typography.titleMedium)
+            }
+            SleepTimerButton(
+                sleepTimer = sleepTimer,
+                now = now,
+                onClick = { showSleepSheet = true },
+            )
+        }
+    }
+
+    if (showSpeedSheet) {
+        SpeedSheet(
+            currentSpeed = state.speed,
+            podcastTitle = state.podcastTitle,
+            onSpeedChange = onSpeedChange,
+            onDismiss = { showSpeedSheet = false },
+        )
+    }
+    if (showSleepSheet) {
+        SleepTimerSheet(
+            running = sleepTimer != null,
+            onSetSleepTimer = onSetSleepTimer,
+            onSleepAtEndOfEpisode = onSleepAtEndOfEpisode,
+            onCancelSleepTimer = onCancelSleepTimer,
+            onDismiss = { showSleepSheet = false },
+        )
+    }
+}
+
+@Composable
+private fun SleepTimerButton(sleepTimer: SleepTimer?, now: Long, onClick: () -> Unit) {
+    val title = stringResource(CoreUiR.string.sleep_timer)
+    if (sleepTimer == null) {
+        IconButton(onClick = onClick) {
+            Icon(
+                painterResource(CoreUiR.drawable.ic_bedtime),
+                contentDescription = title,
+            )
+        }
+    } else {
+        val label = SleepTimers.label(sleepTimer, now)
+        val description = stringResource(R.string.player_sleep_running, label)
+        TextButton(
+            onClick = onClick,
+            modifier = Modifier.semantics { contentDescription = description },
+        ) {
+            Icon(
+                painterResource(CoreUiR.drawable.ic_bedtime),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.size(8.dp))
+            Text(label, style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
+
+/** The speed options, the current one checked; picking one applies it and closes the sheet. */
+@Composable
+private fun SpeedSheet(
+    currentSpeed: Float,
+    podcastTitle: String,
+    onSpeedChange: (Float) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    val close: () -> Unit = {
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            if (!sheetState.isVisible) onDismiss()
+        }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 24.dp),
+        ) {
+            SheetHeader(
+                title = stringResource(CoreUiR.string.speed),
+                note = stringResource(R.string.player_speed_remembered, podcastTitle),
+            )
+            PlaybackSpeeds.options.forEach { option ->
+                SheetOption(
+                    label = Formats.speedLabel(option),
+                    checked = abs(option - currentSpeed) < 0.001f,
+                    onClick = {
+                        onSpeedChange(option)
+                        close()
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** 15 / 30 / 45 / 60 min, end of episode and, while one runs, turn off. */
+@Composable
+private fun SleepTimerSheet(
+    running: Boolean,
+    onSetSleepTimer: (Int) -> Unit,
+    onSleepAtEndOfEpisode: () -> Unit,
+    onCancelSleepTimer: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    val close: () -> Unit = {
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            if (!sheetState.isVisible) onDismiss()
+        }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 24.dp),
+        ) {
+            SheetHeader(title = stringResource(CoreUiR.string.sleep_timer), note = null)
+            SleepTimers.minuteOptions.forEach { minutes ->
+                SheetOption(
+                    label = stringResource(R.string.player_sleep_minutes, minutes),
+                    checked = false,
+                    onClick = {
+                        onSetSleepTimer(minutes)
+                        close()
+                    },
+                )
+            }
+            SheetOption(
+                label = stringResource(CoreUiR.string.end_of_episode),
+                checked = false,
+                onClick = {
+                    onSleepAtEndOfEpisode()
+                    close()
+                },
+            )
+            if (running) {
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                SheetOption(
+                    label = stringResource(R.string.player_sleep_turn_off),
+                    checked = false,
+                    onClick = {
+                        onCancelSleepTimer()
+                        close()
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SheetHeader(title: String, note: String?) {
+    Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+        Text(title, style = MaterialTheme.typography.titleLarge)
+        if (note != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                note,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SheetOption(label: String, checked: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        if (checked) {
+            Icon(
+                painterResource(CoreUiR.drawable.ic_check),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
@@ -243,7 +495,19 @@ private fun Controls(
     onPlayPause: () -> Unit,
     onSkipBack: () -> Unit,
     onSkipForward: () -> Unit,
+    skipBackMs: Long,
+    skipForwardMs: Long,
 ) {
+    val backIcon = when (skipBackMs) {
+        5_000L -> CoreUiR.drawable.ic_replay_5
+        30_000L -> CoreUiR.drawable.ic_replay_30
+        else -> CoreUiR.drawable.ic_replay_10
+    }
+    val forwardIcon = when (skipForwardMs) {
+        5_000L -> CoreUiR.drawable.ic_forward_5
+        10_000L -> CoreUiR.drawable.ic_forward_10
+        else -> CoreUiR.drawable.ic_forward_30
+    }
     val loadingLabel = stringResource(R.string.player_loading)
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -251,8 +515,11 @@ private fun Controls(
     ) {
         IconButton(onClick = onSkipBack, modifier = Modifier.size(56.dp)) {
             Icon(
-                painterResource(CoreUiR.drawable.ic_replay_10),
-                contentDescription = stringResource(CoreUiR.string.skip_back),
+                painterResource(backIcon),
+                contentDescription = stringResource(
+                    R.string.player_skip_back,
+                    (skipBackMs / 1_000L).toInt(),
+                ),
                 modifier = Modifier.size(32.dp),
             )
         }
@@ -279,8 +546,11 @@ private fun Controls(
         }
         IconButton(onClick = onSkipForward, modifier = Modifier.size(56.dp)) {
             Icon(
-                painterResource(CoreUiR.drawable.ic_forward_30),
-                contentDescription = stringResource(CoreUiR.string.skip_forward),
+                painterResource(forwardIcon),
+                contentDescription = stringResource(
+                    R.string.player_skip_forward,
+                    (skipForwardMs / 1_000L).toInt(),
+                ),
                 modifier = Modifier.size(32.dp),
             )
         }
