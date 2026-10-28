@@ -98,7 +98,7 @@ build-logic/
 - [x] **Phase 4: Offline and background.** Downloads (Wi-Fi only option, progress,
       delete), auto-download newest, background refresh every few hours, new-episode
       notification, clean-up of played downloads.
-- [ ] **Phase 5: Comfort.** Sleep timer (with end of episode and shake to extend),
+- [x] **Phase 5: Comfort.** Sleep timer (with end of episode and shake to extend),
       per-show speed, skip silence, Settings screen, OPML import/export.
 - [ ] **Phase 6: Updates from inside the app.** Port ChoreMe's `:core:update` and
       `:feature:update`; README with the fixed "latest APK" link.
