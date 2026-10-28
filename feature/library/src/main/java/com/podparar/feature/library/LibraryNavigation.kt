@@ -9,10 +9,11 @@ import androidx.navigation.navArgument
 /** This feature's only public entry point; everything else stays internal to the module. */
 const val LIBRARY_ROUTE = "library"
 
+/** The show page's path argument; declared before [PODCAST_ROUTE], which uses it. */
+internal const val FEED_URL_ARG = "feedUrl"
+
 /** A show's page. The feed URL is [Uri.encode]d into the path; use [podcastRoute] to build it. */
 const val PODCAST_ROUTE = "podcast/{$FEED_URL_ARG}"
-
-internal const val FEED_URL_ARG = "feedUrl"
 
 /** The route that opens the show page for [feedUrl]. */
 fun podcastRoute(feedUrl: String): String = "podcast/" + Uri.encode(feedUrl)

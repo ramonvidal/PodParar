@@ -33,7 +33,7 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repository.refreshAll()
-            } catch (_: PodcastException) {
+            } catch (e: PodcastException) {
                 // refreshAll counts failures itself; nothing to show beyond what's stored.
             } finally {
                 refreshing.value = false
