@@ -13,6 +13,13 @@ on the phone and open it (allow installing from unknown sources). That link alwa
 points at the newest build and needs no GitHub account. Each build installs over the
 previous one.
 
+### Updates
+
+After that first install, PodParar checks for new builds itself (every few hours, or
+right away from **Settings → Check for updates**) and offers to install them: tap
+**Install** on the banner at the top of the screen and confirm. The first time, Android
+asks you to allow PodParar to install apps.
+
 ## Tech stack
 
 Kotlin, Jetpack Compose (Material 3), Hilt; Media3 (ExoPlayer), Room and OkHttp as

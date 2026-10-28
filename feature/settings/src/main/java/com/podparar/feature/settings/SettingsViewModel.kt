@@ -9,6 +9,7 @@ import com.podparar.core.model.Opml
 import com.podparar.core.model.PodcastException
 import com.podparar.core.settings.DownloadSettings
 import com.podparar.core.settings.PlaybackSettings
+import com.podparar.core.update.UpdateRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -36,6 +37,17 @@ internal sealed interface OpmlStatus {
     val isBusy: Boolean get() = this is Importing || this is Exporting
 }
 
+/** How "Check for updates" went. The screen turns it into words. */
+internal sealed interface UpdateCheck {
+    data object Idle : UpdateCheck
+    data object Checking : UpdateCheck
+    data object UpToDate : UpdateCheck
+
+    /** [version] is offered; the banner at the top of the screen shows it too. */
+    data class Found(val version: String) : UpdateCheck
+    data object Failed : UpdateCheck
+}
+
 /** The settings as stored on this phone, without the OPML message or the app version (the screen adds those). */
 internal data class StoredSettings(
     val skipBackMs: Long,
@@ -46,12 +58,13 @@ internal data class StoredSettings(
     val newEpisodeAlerts: Boolean,
 )
 
-/** This phone's choices, and OPML import/export. File access stays in the screen; this only sees text. */
+/** This phone's choices, OPML import/export and "Check for updates". File access stays in the screen; this only sees text. */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val playback: PlaybackSettings,
     private val downloads: DownloadSettings,
     private val repository: PodcastRepository,
+    private val updates: UpdateRepository,
 ) : ViewModel() {
 
     private val opmlStatus = MutableStateFlow<OpmlStatus?>(null)
@@ -65,6 +78,24 @@ class SettingsViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     internal val opml: StateFlow<OpmlStatus?> = opmlStatus
+
+    private val _updateCheck = MutableStateFlow<UpdateCheck>(UpdateCheck.Idle)
+    internal val updateCheck: StateFlow<UpdateCheck> = _updateCheck
+
+    /** Asks the release page right away; a version put off with "Later" is offered again. */
+    fun checkForUpdates() {
+        if (_updateCheck.value == UpdateCheck.Checking) return
+        _updateCheck.value = UpdateCheck.Checking
+        viewModelScope.launch {
+            _updateCheck.value = try {
+                updates.checkNow()?.let { UpdateCheck.Found(it.versionName) } ?: UpdateCheck.UpToDate
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                UpdateCheck.Failed
+            }
+        }
+    }
 
     fun setSkipBackMs(ms: Long) {
         viewModelScope.launch { playback.setSkipBackMs(ms) }

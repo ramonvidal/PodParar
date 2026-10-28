@@ -1,5 +1,6 @@
 plugins {
     id("podparar.android.feature")
+    id("podparar.android.compose.tests")
 }
 
 android {

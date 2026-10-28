@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,6 +58,7 @@ internal data class SettingsUiState(
     val opmlMessage: String? = null,
     val opmlBusy: Boolean = false,
     val appVersion: String = "",
+    val updateCheck: UpdateCheck = UpdateCheck.Idle,
 )
 
 private const val EXPORT_FILE_NAME = "podparar-subscriptions.opml"
@@ -69,6 +72,7 @@ internal fun SettingsScreen(
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val opml by viewModel.opml.collectAsStateWithLifecycle()
+    val updateCheck by viewModel.updateCheck.collectAsStateWithLifecycle()
     val appVersion = remember(context) { context.appVersion() }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -95,6 +99,7 @@ internal fun SettingsScreen(
         opmlMessage = opml?.let { opmlMessage(it) },
         opmlBusy = opml?.isBusy == true,
         appVersion = appVersion,
+        updateCheck = updateCheck,
     ).let { base ->
         if (stored == null) {
             base
@@ -121,6 +126,7 @@ internal fun SettingsScreen(
         onNewEpisodeAlertsChange = viewModel::setNewEpisodeAlerts,
         onImportOpml = { importLauncher.launch(OPML_MIME_TYPES) },
         onExportOpml = { exportLauncher.launch(EXPORT_FILE_NAME) },
+        onCheckForUpdates = viewModel::checkForUpdates,
     )
 }
 
@@ -173,6 +179,7 @@ internal fun SettingsContent(
     onImportOpml: () -> Unit,
     onExportOpml: () -> Unit,
     modifier: Modifier = Modifier,
+    onCheckForUpdates: () -> Unit = {},
 ) {
     Column(modifier.fillMaxSize()) {
         TopAppBar(
@@ -287,7 +294,42 @@ internal fun SettingsContent(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
+                RowDivider()
+                UpdateCheckRow(state.updateCheck, onCheckForUpdates)
             }
+        }
+    }
+}
+
+/** "Check for updates", with how the last check went underneath. Lines up with the version above it. */
+@Composable
+private fun UpdateCheckRow(check: UpdateCheck, onCheck: () -> Unit) {
+    val checking = check == UpdateCheck.Checking
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !checking, role = Role.Button, onClick = onCheck)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        // The icon column of the row above: empty, or a spinner while checking.
+        Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+            if (checking) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+        }
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.settings_check_updates), style = MaterialTheme.typography.bodyLarge)
+            Text(
+                when (check) {
+                    UpdateCheck.Idle -> stringResource(R.string.settings_check_updates_hint)
+                    UpdateCheck.Checking -> stringResource(R.string.settings_checking_updates)
+                    UpdateCheck.UpToDate -> stringResource(R.string.settings_up_to_date)
+                    is UpdateCheck.Found -> stringResource(R.string.settings_update_found, check.version)
+                    UpdateCheck.Failed -> stringResource(R.string.settings_update_check_failed)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

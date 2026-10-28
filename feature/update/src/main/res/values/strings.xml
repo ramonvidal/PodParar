@@ -1,0 +1,10 @@
+<resources>
+    <string name="update_available">PodParar %1$s is available</string>
+    <string name="update_install">Install</string>
+    <string name="update_later">Later</string>
+    <string name="update_allow">To update, allow PodParar to install apps (only needed once).</string>
+    <string name="update_allow_button">Allow</string>
+    <string name="update_downloading">Downloading…</string>
+    <string name="update_failed">The update couldn\'t be downloaded. Check your connection.</string>
+    <string name="update_retry">Try again</string>
+</resources>
