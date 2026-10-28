@@ -176,7 +176,7 @@ class DefaultPodcastRepositoryPhase5Test {
     @Test
     fun `importOpml counts failures and carries on`() = runTest {
         feeds.failures["https://bad.example.com/rss"] = LoadError.NOT_A_FEED
-        feeds.failures["https://down.example.com/rss"] = LoadError.NETWORK
+        feeds.failures["https://down.example.com/rss"] = LoadError.OFFLINE
 
         val result = repository.importOpml(
             opml(
