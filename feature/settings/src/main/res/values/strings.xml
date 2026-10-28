@@ -1,0 +1,4 @@
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_message">Playback, downloads and app update options will live here.</string>
+</resources>

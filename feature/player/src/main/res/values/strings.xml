@@ -1,0 +1,4 @@
+<resources>
+    <string name="player_title">Now playing</string>
+    <string name="player_message">Pick an episode to start listening.</string>
+</resources>

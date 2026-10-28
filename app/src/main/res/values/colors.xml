@@ -1,0 +1,5 @@
+<resources>
+    <!-- Soft cards: a white podcasts glyph on the app's one green (see core/ui theme). -->
+    <color name="ic_launcher_background">#2E6B52</color>
+    <color name="window_background">#F4F4F2</color>
+</resources>

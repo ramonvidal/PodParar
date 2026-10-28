@@ -1,0 +1,6 @@
+<resources>
+    <!-- Only covers the window before Compose draws; the real theme lives in core/ui. -->
+    <style name="Theme.PodParar" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+</resources>

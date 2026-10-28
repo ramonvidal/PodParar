@@ -1,0 +1,4 @@
+<resources>
+    <string name="discover_title">Discover</string>
+    <string name="discover_message">Search for shows or add one by its RSS link.</string>
+</resources>

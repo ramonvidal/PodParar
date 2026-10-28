@@ -1,0 +1,4 @@
+<resources>
+    <string name="library_title">Library</string>
+    <string name="library_message">The shows you subscribe to will show up here.</string>
+</resources>
