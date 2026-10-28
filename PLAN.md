@@ -52,7 +52,7 @@ downloads      episodeId (key), state (QUEUED | RUNNING | DONE | FAILED), filePa
 
 Episode states: `NEW → IN_PROGRESS → PLAYED`; marking unplayed goes back to the start.
 The rules for "played", "resume from", queue order and sleep timer timing live in
-`core/model/.../playback/` and are unit tested on the plain JVM.
+`core/model` (`PlaybackRules`, `parse/`) and are unit tested on the plain JVM.
 
 ## Modules
 
@@ -82,7 +82,7 @@ build-logic/
 
 ## Phases
 
-- [ ] **Phase 0: Skeleton.** Modules above (empty where not needed yet), convention
+- [x] **Phase 0: Skeleton.** Modules above (empty where not needed yet), convention
       plugins and the module-rules check copied from ChoreMe, theme and Figtree,
       bottom navigation with Home / Library / Discover placeholders, GitHub Actions
       building the APK, running the tests and publishing a release.
