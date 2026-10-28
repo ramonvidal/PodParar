@@ -2,4 +2,11 @@
     <string name="cancel">Cancel</string>
     <string name="retry">Retry</string>
     <string name="error_generic">Something went wrong. Check your connection and try again.</string>
+    <string name="error_offline">You\'re offline. Check your connection and try again.</string>
+    <string name="error_not_found">That show couldn\'t be found.</string>
+    <string name="error_not_a_feed">That link isn\'t a podcast feed.</string>
+    <string name="error_invalid_link">That doesn\'t look like a link.</string>
+    <string name="played">Played</string>
+    <string name="subscribe">Subscribe</string>
+    <string name="subscribed">Subscribed</string>
 </resources>

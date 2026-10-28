@@ -27,4 +27,10 @@ data class Episode(
             positionMs > 0 -> EpisodeState.IN_PROGRESS
             else -> EpisodeState.NEW
         }
+
+    companion object {
+        /** "<feedUrl>#<guid>"; the trimmed guid, or the audio URL when the guid is null or blank. */
+        fun idFor(feedUrl: String, guid: String?, audioUrl: String): String =
+            "$feedUrl#${guid?.trim()?.takeIf { it.isNotEmpty() } ?: audioUrl}"
+    }
 }
