@@ -10,4 +10,7 @@ android {
 
 dependencies {
     implementation(projects.core.model)
+    // Show artwork; loaded over OkHttp, the same client library :core:network uses.
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 }

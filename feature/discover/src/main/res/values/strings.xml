@@ -1,4 +1,14 @@
 <resources>
     <string name="discover_title">Discover</string>
-    <string name="discover_message">Search for shows or add one by its RSS link.</string>
+    <string name="discover_search_hint">Search for a show</string>
+    <string name="discover_clear_search">Clear search</string>
+    <string name="discover_add_by_link">Add by RSS link</string>
+    <string name="discover_start_title">Find a show</string>
+    <string name="discover_start_body">Search by name, or add any show by its RSS link.</string>
+    <string name="discover_no_results">No shows found for “%1$s”</string>
+    <string name="discover_link_title">Add by RSS link</string>
+    <string name="discover_link_label">RSS link</string>
+    <string name="discover_link_placeholder">https://example.com/feed.xml</string>
+    <string name="discover_link_add">Add</string>
+    <string name="discover_link_adding">Adding the show…</string>
 </resources>

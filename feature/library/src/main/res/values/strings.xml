@@ -1,4 +1,18 @@
 <resources>
     <string name="library_title">Library</string>
-    <string name="library_message">The shows you subscribe to will show up here.</string>
+    <string name="library_empty_title">No shows yet</string>
+    <string name="library_empty_body">Find shows to follow in Discover.</string>
+    <string name="library_find_show">Find a show</string>
+    <string name="library_back">Back</string>
+    <string name="library_more_options">More options</string>
+    <string name="library_unsubscribe">Unsubscribe</string>
+    <string name="library_unsubscribe_title">Unsubscribe from %1$s?</string>
+    <string name="library_unsubscribe_body">The show and its episodes will be removed from this phone.</string>
+    <string name="library_more">More</string>
+    <string name="library_less">Less</string>
+    <string name="library_show_not_found">Show not found</string>
+    <plurals name="library_episode_count">
+        <item quantity="one">%d episode</item>
+        <item quantity="other">%d episodes</item>
+    </plurals>
 </resources>

@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -30,7 +31,9 @@ import com.podparar.feature.discover.discoverScreen
 import com.podparar.feature.home.HOME_ROUTE
 import com.podparar.feature.home.homeScreen
 import com.podparar.feature.library.LIBRARY_ROUTE
+import com.podparar.feature.library.PODCAST_ROUTE
 import com.podparar.feature.library.libraryScreen
+import com.podparar.feature.library.podcastRoute
 import com.podparar.feature.player.MiniPlayer
 import com.podparar.feature.player.playerScreen
 import com.podparar.feature.settings.settingsScreen
@@ -60,10 +63,18 @@ fun PodPararNavHost() {
                 MiniPlayer()
                 NavigationBar {
                     TopLevelDestination.entries.forEach { destination ->
-                        val selected = currentDestination?.hierarchy?.any { it.route == destination.route } == true
+                        val selected = currentDestination.isInTab(destination)
                         NavigationBarItem(
                             selected = selected,
-                            onClick = { navController.navigateToTab(destination.route) },
+                            onClick = {
+                                // Tapping the tab you're on goes back to its first screen. A show page
+                                // opened from Discover sits on Discover's stack, so its tab pops it too.
+                                val leavingShowPage = currentDestination?.route == PODCAST_ROUTE &&
+                                    destination != TopLevelDestination.Home
+                                val poppedToTabRoot = (selected || leavingShowPage) &&
+                                    navController.popBackStack(destination.route, inclusive = false)
+                                if (!poppedToTabRoot) navController.navigateToTab(destination.route)
+                            },
                             icon = { Icon(painterResource(destination.icon), contentDescription = null) },
                             label = { Text(stringResource(destination.label)) },
                             colors = NavigationBarItemDefaults.colors(
@@ -84,12 +95,23 @@ fun PodPararNavHost() {
             modifier = Modifier.padding(innerPadding),
         ) {
             homeScreen()
-            libraryScreen()
-            discoverScreen()
+            libraryScreen(
+                onOpenPodcast = { navController.navigate(podcastRoute(it)) },
+                onFindShows = { navController.navigateToTab(DISCOVER_ROUTE) },
+                onBack = { navController.popBackStack() },
+            )
+            discoverScreen(onOpenPodcast = { navController.navigate(podcastRoute(it)) })
             playerScreen()
             settingsScreen()
         }
     }
+}
+
+/** A show's page belongs to Library, wherever it was opened from. */
+private fun NavDestination?.isInTab(tab: TopLevelDestination): Boolean {
+    if (this == null) return false
+    if (hierarchy.any { it.route == tab.route }) return true
+    return tab == TopLevelDestination.Library && route == PODCAST_ROUTE
 }
 
 /** Switches tabs the way the bottom bar does, keeping each tab's state. */
