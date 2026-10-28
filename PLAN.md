@@ -95,7 +95,7 @@ build-logic/
       where you stopped; played rules; mark played/unplayed.
 - [x] **Phase 3: Home and queue.** Continue listening, Up next (play next, add, drag to
       reorder, swipe away, auto-continue), New episodes, "Mark all played".
-- [ ] **Phase 4: Offline and background.** Downloads (Wi-Fi only option, progress,
+- [x] **Phase 4: Offline and background.** Downloads (Wi-Fi only option, progress,
       delete), auto-download newest, background refresh every few hours, new-episode
       notification, clean-up of played downloads.
 - [ ] **Phase 5: Comfort.** Sleep timer (with end of episode and shake to extend),
