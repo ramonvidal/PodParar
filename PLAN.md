@@ -100,7 +100,7 @@ build-logic/
       notification, clean-up of played downloads.
 - [x] **Phase 5: Comfort.** Sleep timer (with end of episode and shake to extend),
       per-show speed, skip silence, Settings screen, OPML import/export.
-- [ ] **Phase 6: Updates from inside the app.** Port ChoreMe's `:core:update` and
+- [x] **Phase 6: Updates from inside the app.** Port ChoreMe's `:core:update` and
       `:feature:update`; README with the fixed "latest APK" link.
 - [ ] **Extras (later).** Chapters, Android Auto, a home-screen widget, episode search
       inside a show.
