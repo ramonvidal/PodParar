@@ -1,5 +1,7 @@
 package com.podparar.core.model
 
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -34,5 +36,36 @@ object Formats {
             date.year == today.year -> DAY_MONTH.format(date)
             else -> DAY_MONTH_YEAR.format(date)
         }
+    }
+
+    /** Player clock: "0:05", "12:34", "1:02:03". Negative -> "0:00". Seconds are floored. */
+    fun timeLabel(ms: Long): String {
+        val totalSeconds = ms.coerceAtLeast(0L) / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        val seconds = totalSeconds % 60
+        val ss = seconds.toString().padStart(2, '0')
+        return if (hours > 0) "$hours:${minutes.toString().padStart(2, '0')}:$ss" else "$minutes:$ss"
+    }
+
+    /** "-12:34": timeLabel(durationMs - positionMs) with a leading minus; "" if durationMs <= 0. Never below "-0:00". */
+    fun remainingLabel(positionMs: Long, durationMs: Long): String {
+        if (durationMs <= 0) return ""
+        val remaining = if (positionMs <= 0) durationMs else (durationMs - positionMs).coerceAtLeast(0L)
+        return "-" + timeLabel(remaining)
+    }
+
+    /**
+     * "1×", "1.5×", "0.8×", "2.5×": no trailing zeros, at most 2 decimals (half up), the × sign (U+00D7).
+     * A NaN or infinite speed shows as [PlaybackSpeeds.DEFAULT].
+     */
+    fun speedLabel(speed: Float): String {
+        val value = if (speed.isNaN() || speed.isInfinite()) PlaybackSpeeds.DEFAULT else speed
+        // Float.toString gives the shortest decimal (1.2f -> "1.2"), so no binary noise like 1.2000000476.
+        val text = BigDecimal(value.toString())
+            .setScale(2, RoundingMode.HALF_UP)
+            .stripTrailingZeros()
+            .toPlainString()
+        return (if (text == "-0") "0" else text) + "\u00D7"
     }
 }

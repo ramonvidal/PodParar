@@ -35,6 +35,7 @@ import com.podparar.feature.library.PODCAST_ROUTE
 import com.podparar.feature.library.libraryScreen
 import com.podparar.feature.library.podcastRoute
 import com.podparar.feature.player.MiniPlayer
+import com.podparar.feature.player.PLAYER_ROUTE
 import com.podparar.feature.player.playerScreen
 import com.podparar.feature.settings.settingsScreen
 import com.podparar.feature.update.UpdateBanner
@@ -49,7 +50,7 @@ enum class TopLevelDestination(
     Discover(DISCOVER_ROUTE, R.string.nav_discover, CoreUiR.drawable.ic_search),
 }
 
-/** The three tabs, with the mini player sitting just above them on every screen. */
+/** The three tabs, with the mini player just above them on every screen but the full player. */
 @Composable
 fun PodPararNavHost() {
     val navController = rememberNavController()
@@ -59,31 +60,36 @@ fun PodPararNavHost() {
     Scaffold(
         topBar = { UpdateBanner() },
         bottomBar = {
-            Column {
-                MiniPlayer()
-                NavigationBar {
-                    TopLevelDestination.entries.forEach { destination ->
-                        val selected = currentDestination.isInTab(destination)
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                // Tapping the tab you're on goes back to its first screen. A show page
-                                // opened from Discover sits on Discover's stack, so its tab pops it too.
-                                val leavingShowPage = currentDestination?.route == PODCAST_ROUTE &&
-                                    destination != TopLevelDestination.Home
-                                val poppedToTabRoot = (selected || leavingShowPage) &&
-                                    navController.popBackStack(destination.route, inclusive = false)
-                                if (!poppedToTabRoot) navController.navigateToTab(destination.route)
-                            },
-                            icon = { Icon(painterResource(destination.icon), contentDescription = null) },
-                            label = { Text(stringResource(destination.label)) },
-                            colors = NavigationBarItemDefaults.colors(
-                                // No pill: the selected tab is just green.
-                                indicatorColor = Color.Transparent,
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                            ),
-                        )
+            // The full player covers the whole screen, so the mini player and tabs step aside.
+            if (currentDestination?.route != PLAYER_ROUTE) {
+                Column {
+                    MiniPlayer(
+                        onOpenPlayer = { navController.navigate(PLAYER_ROUTE) { launchSingleTop = true } },
+                    )
+                    NavigationBar {
+                        TopLevelDestination.entries.forEach { destination ->
+                            val selected = currentDestination.isInTab(destination)
+                            NavigationBarItem(
+                                selected = selected,
+                                onClick = {
+                                    // Tapping the tab you're on goes back to its first screen. A show page
+                                    // opened from Discover sits on Discover's stack, so its tab pops it too.
+                                    val leavingShowPage = currentDestination?.route == PODCAST_ROUTE &&
+                                        destination != TopLevelDestination.Home
+                                    val poppedToTabRoot = (selected || leavingShowPage) &&
+                                        navController.popBackStack(destination.route, inclusive = false)
+                                    if (!poppedToTabRoot) navController.navigateToTab(destination.route)
+                                },
+                                icon = { Icon(painterResource(destination.icon), contentDescription = null) },
+                                label = { Text(stringResource(destination.label)) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    // No pill: the selected tab is just green.
+                                    indicatorColor = Color.Transparent,
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                ),
+                            )
+                        }
                     }
                 }
             }
@@ -101,7 +107,7 @@ fun PodPararNavHost() {
                 onBack = { navController.popBackStack() },
             )
             discoverScreen(onOpenPodcast = { navController.navigate(podcastRoute(it)) })
-            playerScreen()
+            playerScreen(onClose = { navController.popBackStack() })
             settingsScreen()
         }
     }

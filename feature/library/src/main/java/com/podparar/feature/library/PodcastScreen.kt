@@ -55,6 +55,10 @@ internal data class PodcastUiState(
     val isRefreshing: Boolean = false,
     val refreshError: LoadError? = null,
     val now: Long = System.currentTimeMillis(),
+    /** The episode loaded in the player, if any. */
+    val nowPlayingId: String? = null,
+    /** Whether [nowPlayingId] is playing right now (not paused). */
+    val isPlaying: Boolean = false,
 )
 
 @Composable
@@ -68,12 +72,16 @@ internal fun PodcastScreen(
         onBack = onBack,
         onRefresh = viewModel::refresh,
         onUnsubscribe = { viewModel.unsubscribe(onDone = onBack) },
+        onPlayEpisode = viewModel::play,
+        onTogglePlayed = viewModel::togglePlayed,
     )
 }
 
 /**
  * A show's page, drawn from its state alone so screenshot tests can render it.
- * [onUnsubscribe] is called once the listener has confirmed it.
+ * [onUnsubscribe] is called once the listener has confirmed it. Tapping an episode calls
+ * [onPlayEpisode] (play, or play/pause if it's the loaded one); long-pressing it offers
+ * [onTogglePlayed].
  */
 @Composable
 internal fun PodcastContent(
@@ -82,6 +90,8 @@ internal fun PodcastContent(
     onRefresh: () -> Unit,
     onUnsubscribe: () -> Unit,
     modifier: Modifier = Modifier,
+    onPlayEpisode: (Episode) -> Unit = {},
+    onTogglePlayed: (Episode) -> Unit = {},
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmUnsubscribe by rememberSaveable { mutableStateOf(false) }
@@ -155,8 +165,15 @@ internal fun PodcastContent(
                         )
                     }
                     items(state.episodes, key = { it.id }) { episode ->
-                        // Playback arrives in Phase 2; until then a tap does nothing.
-                        EpisodeRow(episode = episode, now = state.now, onClick = {})
+                        val isCurrent = episode.id == state.nowPlayingId
+                        EpisodeRow(
+                            episode = episode,
+                            now = state.now,
+                            onClick = { onPlayEpisode(episode) },
+                            isCurrent = isCurrent,
+                            isPlaying = isCurrent && state.isPlaying,
+                            onTogglePlayed = { onTogglePlayed(episode) },
+                        )
                     }
                 }
             }

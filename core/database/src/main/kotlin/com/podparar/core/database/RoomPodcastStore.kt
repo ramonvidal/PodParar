@@ -44,4 +44,19 @@ internal class RoomPodcastStore(private val db: PodPararDatabase) : PodcastStore
             podcastDao.delete(feedUrl)
         }
     }
+
+    override fun observeEpisode(id: String): Flow<Episode?> =
+        episodeDao.observe(id).map { it?.toModel() }
+
+    override suspend fun episode(id: String): Episode? = episodeDao.episode(id)?.toModel()
+
+    override suspend fun podcast(feedUrl: String): Podcast? = podcastDao.podcast(feedUrl)?.toModel()
+
+    override suspend fun savePosition(id: String, positionMs: Long, durationMs: Long, playedAt: Long) {
+        episodeDao.savePosition(id, positionMs, durationMs, playedAt)
+    }
+
+    override suspend fun setPlayed(id: String, played: Boolean) {
+        episodeDao.setPlayed(id, played)
+    }
 }

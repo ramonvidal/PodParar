@@ -107,6 +107,43 @@ internal class FakePodcastStore : PodcastStore {
         }
     }
 
+    /** Every playback write, in order, e.g. "savePosition(id, 1000, 60000, 5)" or "setPlayed(id, true)". */
+    val playbackCalls = mutableListOf<String>()
+
+    private fun updateEpisode(id: String, change: (Episode) -> Episode) {
+        val url = episodes.value.entries.firstOrNull { (_, list) -> list.any { it.id == id } }?.key ?: return
+        episodes.value = episodes.value + (url to episodes.value.getValue(url).map { if (it.id == id) change(it) else it })
+    }
+
+    private fun findEpisode(id: String): Episode? = episodes.value.values.flatten().firstOrNull { it.id == id }
+
+    override fun observeEpisode(id: String): Flow<Episode?> =
+        episodes.map { map -> map.values.flatten().firstOrNull { it.id == id } }
+
+    override suspend fun episode(id: String): Episode? = findEpisode(id)
+
+    override suspend fun podcast(feedUrl: String): Podcast? = podcasts.value[feedUrl]
+
+    override suspend fun savePosition(id: String, positionMs: Long, durationMs: Long, playedAt: Long) {
+        synchronized(this) {
+            playbackCalls += "savePosition($id, $positionMs, $durationMs, $playedAt)"
+            updateEpisode(id) {
+                it.copy(
+                    positionMs = positionMs,
+                    lastPlayedAt = playedAt,
+                    durationMs = if (durationMs > 0) durationMs else it.durationMs,
+                )
+            }
+        }
+    }
+
+    override suspend fun setPlayed(id: String, played: Boolean) {
+        synchronized(this) {
+            playbackCalls += "setPlayed($id, $played)"
+            updateEpisode(id) { it.copy(played = played, positionMs = 0L) }
+        }
+    }
+
     override suspend fun deletePodcast(feedUrl: String) {
         synchronized(this) {
             deleted += feedUrl

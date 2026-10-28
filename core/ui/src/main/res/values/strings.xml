@@ -9,4 +9,11 @@
     <string name="played">Played</string>
     <string name="subscribe">Subscribe</string>
     <string name="subscribed">Subscribed</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="skip_back">Back 10 seconds</string>
+    <string name="skip_forward">Forward 30 seconds</string>
+    <string name="mark_played">Mark as played</string>
+    <string name="mark_unplayed">Mark as unplayed</string>
+    <string name="speed">Speed</string>
 </resources>

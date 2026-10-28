@@ -6,3 +6,7 @@ plugins {
 android {
     namespace = "com.podparar.feature.library"
 }
+
+dependencies {
+    implementation(projects.core.playback)
+}

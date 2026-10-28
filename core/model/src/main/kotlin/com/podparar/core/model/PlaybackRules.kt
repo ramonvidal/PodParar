@@ -4,6 +4,15 @@ object PlaybackRules {
     /** With less than this left, an episode counts as finished: outros and ads don't need hearing. */
     const val PLAYED_THRESHOLD_MS: Long = 30_000L
 
+    /** How far the back button jumps. */
+    const val SKIP_BACK_MS: Long = 10_000L
+
+    /** How far the forward button jumps. */
+    const val SKIP_FORWARD_MS: Long = 30_000L
+
+    /** How often the position is saved while playing. */
+    const val SAVE_INTERVAL_MS: Long = 5_000L
+
     /** True if playback [ended], or the duration is known and fewer than 30 s remain. */
     fun isPlayed(positionMs: Long, durationMs: Long, ended: Boolean = false): Boolean =
         ended || (durationMs > 0 && durationMs - positionMs < PLAYED_THRESHOLD_MS)

@@ -13,6 +13,9 @@ internal interface PodcastDao {
     @Query("SELECT * FROM podcasts WHERE feedUrl = :feedUrl")
     fun observe(feedUrl: String): Flow<PodcastEntity?>
 
+    @Query("SELECT * FROM podcasts WHERE feedUrl = :feedUrl")
+    suspend fun podcast(feedUrl: String): PodcastEntity?
+
     @Query("SELECT feedUrl FROM podcasts ORDER BY title COLLATE NOCASE ASC, feedUrl ASC")
     suspend fun feedUrls(): List<String>
 

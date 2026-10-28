@@ -24,4 +24,17 @@ interface PodcastStore {
 
     /** Removes the podcast and all its episodes. */
     suspend fun deletePodcast(feedUrl: String)
+
+    /** One episode by id; null while it isn't stored. */
+    fun observeEpisode(id: String): Flow<Episode?>
+
+    suspend fun episode(id: String): Episode?
+
+    suspend fun podcast(feedUrl: String): Podcast?
+
+    /** Updates positionMs and lastPlayedAt; durationMs only when [durationMs] > 0. Unknown id: no-op. */
+    suspend fun savePosition(id: String, positionMs: Long, durationMs: Long, playedAt: Long)
+
+    /** Sets played and resets positionMs to 0 (both ways). Unknown id: no-op. */
+    suspend fun setPlayed(id: String, played: Boolean)
 }

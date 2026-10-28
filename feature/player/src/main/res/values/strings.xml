@@ -1,4 +1,9 @@
 <resources>
-    <string name="player_title">Now playing</string>
-    <string name="player_message">Pick an episode to start listening.</string>
+    <string name="player_now_playing">Now playing</string>
+    <string name="player_close">Close player</string>
+    <string name="player_nothing_playing">Nothing playing</string>
+    <string name="player_nothing_playing_body">Pick an episode to start listening.</string>
+    <string name="player_loading">Loading</string>
+    <string name="player_position">Position</string>
+    <string name="player_speed_description">Speed %1$s</string>
 </resources>
