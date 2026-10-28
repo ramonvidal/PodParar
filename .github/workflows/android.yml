@@ -1,0 +1,76 @@
+name: Android build
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+  # Lets anyone with access rebuild from the Actions tab.
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      # Publishing the APK as a release.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Module structure rules tests
+        run: ./gradlew -p build-logic :rules:test
+
+      # Every Gradle invocation also checks the module structure (podparar.module-rules).
+      - name: Unit tests
+        run: ./gradlew :core:model:test testDebugUnitTest
+
+      # Pictures of the screens that the UI tests draw (Roborazzi), for checking the layout.
+      - name: Collect screenshots
+        if: always()
+        run: |
+          mkdir -p screenshots
+          find . -path '*/build/outputs/roborazzi/*.png' -exec cp {} screenshots/ \;
+          ls screenshots
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: screenshots/
+
+      - name: Build APKs
+        run: ./gradlew assembleDebug assembleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: podparar-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+
+      # One release per build, tagged v0.<build>, so update apps such as Obtainium see a new
+      # version each time. GitHub's fixed link always serves the newest one:
+      # https://github.com/<owner>/<repo>/releases/latest/download/PodParar.apk
+      - name: Publish a release
+        if: github.event_name == 'push' && (github.ref_name == 'claude/dazzling-gates-kqo3gf' || github.ref_name == 'main')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk PodParar.apk
+          assets="PodParar.apk"
+          if ls screenshots/*.png >/dev/null 2>&1; then
+            (cd screenshots && zip -q ../screenshots.zip *.png)
+            assets="$assets screenshots.zip"
+          fi
+          gh release create "v0.${GITHUB_RUN_NUMBER}" $assets \
+            --target "$GITHUB_SHA" \
+            --title "PodParar 0.${GITHUB_RUN_NUMBER}" \
+            --notes "Build ${GITHUB_RUN_NUMBER} from ${GITHUB_SHA::7}. Install PodParar.apk on Android; it updates over any earlier PodParar build." \
+            --latest
+          # Keep the three newest releases.
+          gh release list --limit 100 --json tagName --jq '.[3:][].tagName' | xargs -r -n1 gh release delete --cleanup-tag --yes
