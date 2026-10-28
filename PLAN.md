@@ -90,7 +90,7 @@ build-logic/
       by RSS link. Feed parsing with tests against real-world feeds (CDATA, missing
       guids, odd dates, `HH:MM:SS` and seconds durations). Library grid, show page with
       episodes, pull-to-refresh, unsubscribe.
-- [ ] **Phase 2: Play.** Media3 service with lock screen, notification and headphone
+- [x] **Phase 2: Play.** Media3 service with lock screen, notification and headphone
       controls; mini player and full player; back 10 / forward 30; speed; resume
       where you stopped; played rules; mark played/unplayed.
 - [ ] **Phase 3: Home and queue.** Continue listening, Up next (play next, add, drag to
