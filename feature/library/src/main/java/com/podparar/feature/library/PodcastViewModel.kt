@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.podparar.core.data.EpisodeRepository
 import com.podparar.core.data.PodcastRepository
 import com.podparar.core.data.QueueRepository
+import com.podparar.core.downloads.EpisodeDownloads
 import com.podparar.core.model.Episode
 import com.podparar.core.model.LoadError
 import com.podparar.core.model.PodcastException
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
@@ -24,7 +26,8 @@ import kotlinx.coroutines.launch
 
 /**
  * One show's page: the show and its episodes from the database, refresh and unsubscribe,
- * playing an episode, marking it (or the whole show) played or unplayed, and adding it to Up next.
+ * playing an episode, marking it (or the whole show) played or unplayed, adding it to Up next,
+ * downloading it, and turning the show's auto-download on or off.
  */
 @HiltViewModel
 class PodcastViewModel @Inject constructor(
@@ -33,6 +36,7 @@ class PodcastViewModel @Inject constructor(
     private val episodes: EpisodeRepository,
     private val controller: PlayerController,
     private val queue: QueueRepository,
+    private val downloads: EpisodeDownloads,
 ) : ViewModel() {
 
     /** Navigation has already decoded the path argument, so this is the feed URL as stored. */
@@ -55,7 +59,8 @@ class PodcastViewModel @Inject constructor(
             controller.nowPlaying
                 .map { PlayingState(it?.episodeId, it?.isPlaying == true) }
                 .distinctUntilChanged(),
-        ) { podcast, episodeList, refreshState, playing ->
+            downloads.downloads,
+        ) { podcast, episodeList, refreshState, playing, downloadMap ->
             PodcastUiState(
                 podcast = podcast,
                 episodes = episodeList,
@@ -65,6 +70,7 @@ class PodcastViewModel @Inject constructor(
                 now = System.currentTimeMillis(),
                 nowPlayingId = playing.episodeId,
                 isPlaying = playing.isPlaying,
+                downloads = downloadMap,
             )
         }
             .transform { if (!leaving.value) emit(it) }
@@ -75,6 +81,7 @@ class PodcastViewModel @Inject constructor(
         refresh.value = RefreshState(isRefreshing = true)
         viewModelScope.launch {
             val error = try {
+                // The new episodes it returns are only used by the background refresh.
                 repository.refresh(feedUrl)
                 null
             } catch (e: PodcastException) {
@@ -117,11 +124,34 @@ class PodcastViewModel @Inject constructor(
         }
     }
 
-    /** Removes the show and its episodes, then calls [onDone] (which leaves the page). */
+    /** Downloads [episode] (on Wi-Fi only if that's the setting); progress shows from the database. */
+    fun download(episode: Episode) {
+        downloads.download(episode.id)
+    }
+
+    /** Cancels or deletes [episode]'s download. */
+    fun removeDownload(episode: Episode) {
+        downloads.remove(episode.id)
+    }
+
+    /** Turns auto-download of this show's newest episode on if it was off, off if it was on. */
+    fun toggleAutoDownload() {
+        viewModelScope.launch {
+            val podcast = repository.podcast(feedUrl).first() ?: return@launch
+            repository.setAutoDownload(feedUrl, !podcast.autoDownload)
+        }
+    }
+
+    /**
+     * Deletes the show's downloaded files, removes the show and its episodes, then calls
+     * [onDone] (which leaves the page).
+     */
     fun unsubscribe(onDone: () -> Unit) {
         if (leaving.value) return
         leaving.value = true
         viewModelScope.launch {
+            val episodeIds = repository.episodes(feedUrl).first().map { it.id }
+            downloads.removeAllFor(feedUrl, episodeIds)
             repository.unsubscribe(feedUrl)
             onDone()
         }

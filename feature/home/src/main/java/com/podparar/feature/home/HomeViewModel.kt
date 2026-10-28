@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.podparar.core.data.EpisodeRepository
 import com.podparar.core.data.PodcastRepository
 import com.podparar.core.data.QueueRepository
+import com.podparar.core.downloads.EpisodeDownloads
 import com.podparar.core.model.Episode
 import com.podparar.core.playback.PlayerController
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +20,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Home: what's under way, the queue and the newest episodes, all from the database, plus
- * playing an episode, queue changes and marking played or unplayed.
+ * playing an episode, queue changes, marking played or unplayed and downloads.
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -27,6 +28,7 @@ class HomeViewModel @Inject constructor(
     private val queue: QueueRepository,
     repository: PodcastRepository,
     private val player: PlayerController,
+    private val downloads: EpisodeDownloads,
 ) : ViewModel() {
 
     internal val uiState: StateFlow<HomeUiState> =
@@ -51,7 +53,10 @@ class HomeViewModel @Inject constructor(
                 isPlaying = playing.isPlaying,
                 now = System.currentTimeMillis(),
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
+        }
+            // combine takes at most five typed flows, so the downloads join in a second step.
+            .combine(downloads.downloads) { state, downloadMap -> state.copy(downloads = downloadMap) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
     /** Plays [episode] from where it was left; if it's already loaded, toggles play/pause. */
     fun play(episode: Episode) {
@@ -78,6 +83,16 @@ class HomeViewModel @Inject constructor(
     /** Marks [episode] played if it wasn't, unplayed if it was. */
     fun togglePlayed(episode: Episode) {
         viewModelScope.launch { episodes.setPlayed(episode.id, !episode.played) }
+    }
+
+    /** Downloads [episode] (on Wi-Fi only if that's the setting); progress shows from the database. */
+    fun download(episode: Episode) {
+        downloads.download(episode.id)
+    }
+
+    /** Cancels or deletes [episode]'s download. */
+    fun removeDownload(episode: Episode) {
+        downloads.remove(episode.id)
     }
 
     private data class PlayingState(val episodeId: String?, val isPlaying: Boolean)

@@ -6,6 +6,7 @@ import com.podparar.core.model.FeedUrls
 import com.podparar.core.model.LoadError
 import com.podparar.core.model.Podcast
 import com.podparar.core.model.PodcastException
+import com.podparar.core.model.RefreshResult
 import com.podparar.core.model.SearchResult
 import com.podparar.core.network.FeedSource
 import com.podparar.core.network.PodcastDirectory
@@ -51,30 +52,36 @@ class DefaultPodcastRepository @Inject constructor(
         return store.observePodcast(feed.podcast.feedUrl).first() ?: feed.podcast
     }
 
-    override suspend fun refresh(feedUrl: String) {
-        store.saveFeed(feeds.fetch(feedUrl))
-    }
+    override suspend fun refresh(feedUrl: String): List<Episode> = store.saveFeed(feeds.fetch(feedUrl))
 
-    override suspend fun refreshAll(): Int {
+    override suspend fun refreshAll(): RefreshResult {
         val urls = store.podcastUrls()
-        if (urls.isEmpty()) return 0
+        if (urls.isEmpty()) return RefreshResult(failedFeeds = 0, newEpisodes = emptyList())
         val permits = Semaphore(MAX_PARALLEL_REFRESHES)
-        return coroutineScope {
+        // null = that feed failed.
+        val results: List<List<Episode>?> = coroutineScope {
             urls.map { url ->
                 async {
                     permits.withPermit {
                         try {
                             refresh(url)
-                            false
                         } catch (e: CancellationException) {
                             throw e
                         } catch (e: Exception) {
-                            true
+                            null
                         }
                     }
                 }
-            }.awaitAll().count { failed -> failed }
+            }.awaitAll()
         }
+        return RefreshResult(
+            failedFeeds = results.count { it == null },
+            newEpisodes = results.flatMap { it.orEmpty() },
+        )
+    }
+
+    override suspend fun setAutoDownload(feedUrl: String, enabled: Boolean) {
+        store.setAutoDownload(feedUrl, enabled)
     }
 
     override suspend fun unsubscribe(feedUrl: String) {

@@ -12,3 +12,18 @@ internal val MIGRATION_1_2 = object : Migration(1, 2) {
         )
     }
 }
+
+/**
+ * Version 3 adds the downloads table and the podcasts' auto-download flag (off for every existing show).
+ * The SQL matches what Room generates for DownloadEntity and PodcastEntity.autoDownload.
+ */
+internal val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `downloads` (`episodeId` TEXT NOT NULL, `state` TEXT NOT NULL, " +
+                "`filePath` TEXT, `bytesDownloaded` INTEGER NOT NULL, `totalBytes` INTEGER NOT NULL, " +
+                "`updatedAt` INTEGER NOT NULL, PRIMARY KEY(`episodeId`))",
+        )
+        db.execSQL("ALTER TABLE `podcasts` ADD COLUMN `autoDownload` INTEGER NOT NULL DEFAULT 0")
+    }
+}

@@ -1,5 +1,6 @@
 package com.podparar.core.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.podparar.core.model.Podcast
@@ -12,6 +13,7 @@ internal data class PodcastEntity(
     val description: String,
     val artworkUrl: String?,
     val lastRefreshed: Long,
+    @ColumnInfo(defaultValue = "0") val autoDownload: Boolean = false,
 )
 
 internal fun PodcastEntity.toModel(): Podcast = Podcast(
@@ -21,6 +23,7 @@ internal fun PodcastEntity.toModel(): Podcast = Podcast(
     description = description,
     artworkUrl = artworkUrl,
     lastRefreshed = lastRefreshed,
+    autoDownload = autoDownload,
 )
 
 internal fun Podcast.toEntity(): PodcastEntity = PodcastEntity(
@@ -30,4 +33,5 @@ internal fun Podcast.toEntity(): PodcastEntity = PodcastEntity(
     description = description,
     artworkUrl = artworkUrl,
     lastRefreshed = lastRefreshed,
+    autoDownload = autoDownload,
 )

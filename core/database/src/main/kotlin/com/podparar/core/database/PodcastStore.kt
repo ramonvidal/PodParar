@@ -1,5 +1,6 @@
 package com.podparar.core.database
 
+import com.podparar.core.model.Download
 import com.podparar.core.model.Episode
 import com.podparar.core.model.EpisodeWithPodcast
 import com.podparar.core.model.ParsedFeed
@@ -20,10 +21,17 @@ interface PodcastStore {
 
     suspend fun episodes(feedUrl: String): List<Episode>
 
-    /** In one transaction: upserts the podcast and stores FeedMerge.merge(stored episodes, [episodes]). */
-    suspend fun saveFeed(feed: ParsedFeed)
+    /**
+     * In one transaction: upserts the podcast (keeping the stored show's autoDownload) and stores
+     * FeedMerge.merge(stored episodes, [episodes]). Returns the episodes that are new (ids not stored before),
+     * newest first.
+     */
+    suspend fun saveFeed(feed: ParsedFeed): List<Episode>
 
-    /** Removes the podcast, all its episodes and their queue entries. */
+    /** Turns auto-download on or off for that show. Unknown feed: no-op. */
+    suspend fun setAutoDownload(feedUrl: String, enabled: Boolean)
+
+    /** Removes the podcast, all its episodes, their queue entries and their download rows. */
     suspend fun deletePodcast(feedUrl: String)
 
     /** One episode by id; null while it isn't stored. */
@@ -55,4 +63,17 @@ interface PodcastStore {
 
     /** Every episode of that show: played = 1, positionMs = 0. */
     suspend fun markAllPlayed(feedUrl: String)
+
+    /** Every download row, keyed by episodeId. */
+    fun observeDownloads(): Flow<Map<String, Download>>
+
+    suspend fun download(episodeId: String): Download?
+
+    suspend fun downloads(): List<Download>
+
+    /** Inserts or replaces the row for download.episodeId. */
+    suspend fun upsertDownload(download: Download)
+
+    /** Unknown id: no-op. */
+    suspend fun deleteDownload(episodeId: String)
 }

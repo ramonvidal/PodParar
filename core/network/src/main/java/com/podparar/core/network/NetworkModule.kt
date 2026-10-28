@@ -34,4 +34,8 @@ internal object NetworkModule {
     @Provides
     @Singleton
     fun podcastDirectory(client: OkHttpClient): PodcastDirectory = ItunesDirectory(client)
+
+    @Provides
+    @Singleton
+    fun audioDownloader(client: OkHttpClient): AudioDownloader = OkHttpAudioDownloader(client)
 }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconButton
@@ -29,6 +30,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.podparar.core.model.Download
+import com.podparar.core.model.DownloadState
 import com.podparar.core.model.Episode
 import com.podparar.core.model.EpisodeState
 import com.podparar.core.model.Formats
@@ -50,8 +53,14 @@ import java.time.ZoneId
  *
  * A long press opens a small menu listing, in this order and only for the callbacks that are
  * set, "Play next" ([onPlayNext]), "Add to queue" ([onAddToQueue]) and "Mark as played" or
- * "Mark as unplayed" ([onTogglePlayed]). With none of them set there is no menu.
- * The progress bar has no stop dot at its end.
+ * "Mark as unplayed" ([onTogglePlayed]), then "Download" ([onDownload], when there is no
+ * [download] or it failed) or "Remove download" ([onRemoveDownload], otherwise). With none of
+ * them applying there is no menu.
+ *
+ * When [download] is set the bottom line also says where it stands: "Downloaded", a small
+ * circle filling up with "Downloading" (spinning while the size is unknown), or "Download
+ * failed" in the error colour.
+ * The progress bar has no stop dot at its end and the circle no gap.
  */
 @Composable
 fun EpisodeRow(
@@ -66,6 +75,9 @@ fun EpisodeRow(
     artworkUrl: String? = null,
     onPlayNext: (() -> Unit)? = null,
     onAddToQueue: (() -> Unit)? = null,
+    download: Download? = null,
+    onDownload: (() -> Unit)? = null,
+    onRemoveDownload: (() -> Unit)? = null,
 ) {
     val dateLabel = remember(episode.pubDate, now) {
         Formats.pubDateLabel(episode.pubDate, now, ZoneId.systemDefault())
@@ -84,11 +96,19 @@ fun EpisodeRow(
     val showsPause = isCurrent && isPlaying
     val playNextLabel = stringResource(R.string.play_next)
     val addToQueueLabel = stringResource(R.string.add_to_queue)
-    val hasMenu = onPlayNext != null || onAddToQueue != null || onTogglePlayed != null
+    val downloadLabel = stringResource(R.string.download)
+    val removeDownloadLabel = stringResource(R.string.remove_download)
+    val canDownload = download == null || download.state == DownloadState.FAILED
+    val downloadAction = if (canDownload) onDownload else null
+    val removeDownloadAction = if (!canDownload) onRemoveDownload else null
+    val hasMenu = onPlayNext != null || onAddToQueue != null || onTogglePlayed != null ||
+        downloadAction != null || removeDownloadAction != null
     val menuLabel = when {
         onPlayNext != null -> playNextLabel
         onAddToQueue != null -> addToQueueLabel
         onTogglePlayed != null -> markLabel
+        downloadAction != null -> downloadLabel
+        removeDownloadAction != null -> removeDownloadLabel
         else -> null
     }
 
@@ -147,7 +167,7 @@ fun EpisodeRow(
                         )
                     }
                     val showProgress = state == EpisodeState.IN_PROGRESS && episode.durationMs > 0
-                    if (duration.isNotEmpty() || state == EpisodeState.PLAYED || showProgress) {
+                    if (duration.isNotEmpty() || state == EpisodeState.PLAYED || showProgress || download != null) {
                         Row(
                             modifier = Modifier.padding(top = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -180,6 +200,9 @@ fun EpisodeRow(
                                         drawStopIndicator = {},
                                     )
                                 }
+                            }
+                            if (download != null) {
+                                DownloadStatus(download)
                             }
                         }
                     }
@@ -234,8 +257,89 @@ fun EpisodeRow(
                             },
                         )
                     }
+                    if (downloadAction != null) {
+                        DropdownMenuItem(
+                            text = { Text(downloadLabel) },
+                            onClick = {
+                                menuOpen = false
+                                downloadAction()
+                            },
+                            leadingIcon = {
+                                Icon(painter = painterResource(R.drawable.ic_download), contentDescription = null)
+                            },
+                        )
+                    }
+                    if (removeDownloadAction != null) {
+                        DropdownMenuItem(
+                            text = { Text(removeDownloadLabel) },
+                            onClick = {
+                                menuOpen = false
+                                removeDownloadAction()
+                            },
+                            leadingIcon = {
+                                Icon(painter = painterResource(R.drawable.ic_delete), contentDescription = null)
+                            },
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+/** The download part of an episode's bottom line: an icon or small circle, then a label. */
+@Composable
+private fun DownloadStatus(download: Download) {
+    val grey = MaterialTheme.colorScheme.onSurfaceVariant
+    val color = if (download.state == DownloadState.FAILED) MaterialTheme.colorScheme.error else grey
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        when (download.state) {
+            DownloadState.DONE -> Icon(
+                painter = painterResource(R.drawable.ic_download_done),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = color,
+            )
+            DownloadState.FAILED -> Icon(
+                painter = painterResource(R.drawable.ic_error),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = color,
+            )
+            DownloadState.QUEUED, DownloadState.RUNNING -> {
+                val progress = download.progress
+                if (progress > 0f) {
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.size(14.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 2.dp,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        gapSize = 0.dp,
+                    )
+                } else {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 2.dp,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                }
+            }
+        }
+        Text(
+            stringResource(
+                when (download.state) {
+                    DownloadState.DONE -> R.string.downloaded
+                    DownloadState.FAILED -> R.string.download_failed
+                    DownloadState.QUEUED, DownloadState.RUNNING -> R.string.downloading
+                },
+            ),
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+        )
     }
 }

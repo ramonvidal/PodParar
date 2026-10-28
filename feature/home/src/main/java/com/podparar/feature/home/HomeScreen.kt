@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.podparar.core.model.Download
 import com.podparar.core.model.Episode
 import com.podparar.core.model.EpisodeWithPodcast
 import com.podparar.core.model.PlaybackRules
@@ -76,6 +77,8 @@ internal data class HomeUiState(
     /** Whether [nowPlayingId] is playing right now (not paused). */
     val isPlaying: Boolean = false,
     val now: Long = System.currentTimeMillis(),
+    /** Every download, keyed by episode id. */
+    val downloads: Map<String, Download> = emptyMap(),
 )
 
 @Composable
@@ -95,6 +98,8 @@ internal fun HomeScreen(
         onMoveInQueue = viewModel::moveInQueue,
         onTogglePlayed = viewModel::togglePlayed,
         onFindShows = onFindShows,
+        onDownload = viewModel::download,
+        onRemoveDownload = viewModel::removeDownload,
     )
 }
 
@@ -102,7 +107,8 @@ internal fun HomeScreen(
  * Home, drawn from its state alone so screenshot tests can render it.
  * [onMoveInQueue] gets indices within Up next (0 = its first item), once per drag, on drop.
  * Long-pressing a Continue listening card, or tapping a queued episode's show name, calls
- * [onOpenPodcast] with that show's feed URL.
+ * [onOpenPodcast] with that show's feed URL. Long-pressing a new episode also offers
+ * [onDownload] or [onRemoveDownload].
  */
 @Composable
 internal fun HomeContent(
@@ -116,6 +122,8 @@ internal fun HomeContent(
     onTogglePlayed: (Episode) -> Unit,
     onFindShows: () -> Unit,
     modifier: Modifier = Modifier,
+    onDownload: (Episode) -> Unit = {},
+    onRemoveDownload: (Episode) -> Unit = {},
 ) {
     Column(modifier.fillMaxSize()) {
         TopAppBar(
@@ -147,6 +155,8 @@ internal fun HomeContent(
                 onRemoveFromQueue = onRemoveFromQueue,
                 onMoveInQueue = onMoveInQueue,
                 onTogglePlayed = onTogglePlayed,
+                onDownload = onDownload,
+                onRemoveDownload = onRemoveDownload,
             )
         }
     }
@@ -162,6 +172,8 @@ private fun HomeList(
     onRemoveFromQueue: (Episode) -> Unit,
     onMoveInQueue: (from: Int, to: Int) -> Unit,
     onTogglePlayed: (Episode) -> Unit,
+    onDownload: (Episode) -> Unit,
+    onRemoveDownload: (Episode) -> Unit,
 ) {
     // While a queue item is dragged the list shows this local order; after the drop it is kept
     // until the database sends the new order, so the row doesn't jump back for a frame.
@@ -276,6 +288,9 @@ private fun HomeList(
                     artworkUrl = item.artworkUrl,
                     onPlayNext = { onPlayNext(episode) },
                     onAddToQueue = { onAddToQueue(episode) },
+                    download = state.downloads[episode.id],
+                    onDownload = { onDownload(episode) },
+                    onRemoveDownload = { onRemoveDownload(episode) },
                 )
             }
         }

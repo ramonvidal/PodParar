@@ -15,12 +15,14 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.podparar.core.data.DownloadRepository
 import com.podparar.core.data.EpisodeRepository
 import com.podparar.core.data.QueueRepository
 import com.podparar.core.model.Episode
 import com.podparar.core.model.PlaybackRules
 import com.podparar.core.model.Podcast
 import dagger.hilt.android.AndroidEntryPoint
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -51,6 +53,9 @@ internal class PlaybackService : MediaSessionService() {
 
     @Inject
     lateinit var queue: QueueRepository
+
+    @Inject
+    lateinit var downloads: DownloadRepository
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -247,7 +252,7 @@ internal class PlaybackService : MediaSessionService() {
      */
     private suspend fun continueWithQueue(player: Player, endedId: String) {
         val next = withContext(Dispatchers.IO) { takeNextPlayable() } ?: return
-        val (episode, podcast) = next
+        val (episode, podcast, localFile) = next
         // Something else may have been started (or the ended one replayed) meanwhile:
         // then leave the player alone and put the episode back at the front of Up next.
         val stillEnded = session != null &&
@@ -261,7 +266,7 @@ internal class PlaybackService : MediaSessionService() {
         }
         val speed = player.playbackParameters.speed
         player.setMediaItem(
-            EpisodeMediaItems.build(episode, podcast),
+            EpisodeMediaItems.build(episode, podcast, localFile),
             PlaybackRules.resumePositionMs(episode),
         )
         player.setPlaybackSpeed(speed)
@@ -269,12 +274,16 @@ internal class PlaybackService : MediaSessionService() {
         player.play()
     }
 
-    /** Takes queued ids until one still names an episode; null when the queue runs out. */
-    private suspend fun takeNextPlayable(): Pair<Episode, Podcast?>? {
+    /**
+     * Takes queued ids until one still names an episode; null when the queue runs out.
+     * Comes with the episode's downloaded file when there is one.
+     */
+    private suspend fun takeNextPlayable(): Triple<Episode, Podcast?, File?>? {
         while (true) {
             val id = queue.takeNext() ?: return null
             val episode = episodes.getEpisode(id) ?: continue
-            return episode to episodes.getPodcast(episode.podcastUrl)
+            val podcast = episodes.getPodcast(episode.podcastUrl)
+            return Triple(episode, podcast, LocalAudio.fileFor(downloads, id))
         }
     }
 

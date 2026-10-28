@@ -19,6 +19,9 @@ internal interface PodcastDao {
     @Query("SELECT feedUrl FROM podcasts ORDER BY title COLLATE NOCASE ASC, feedUrl ASC")
     suspend fun feedUrls(): List<String>
 
+    @Query("UPDATE podcasts SET autoDownload = :enabled WHERE feedUrl = :feedUrl")
+    suspend fun setAutoDownload(feedUrl: String, enabled: Boolean)
+
     @Upsert
     suspend fun upsert(podcast: PodcastEntity)
 

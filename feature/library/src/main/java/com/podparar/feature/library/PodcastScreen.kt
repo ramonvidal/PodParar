@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.podparar.core.model.Download
 import com.podparar.core.model.Episode
 import com.podparar.core.model.HtmlText
 import com.podparar.core.model.LoadError
@@ -59,6 +61,8 @@ internal data class PodcastUiState(
     val nowPlayingId: String? = null,
     /** Whether [nowPlayingId] is playing right now (not paused). */
     val isPlaying: Boolean = false,
+    /** This show's downloads (and possibly others'), keyed by episode id. */
+    val downloads: Map<String, Download> = emptyMap(),
 )
 
 @Composable
@@ -77,6 +81,9 @@ internal fun PodcastScreen(
         onMarkAllPlayed = viewModel::markAllPlayed,
         onPlayNext = viewModel::playNext,
         onAddToQueue = viewModel::addToQueue,
+        onDownload = viewModel::download,
+        onRemoveDownload = viewModel::removeDownload,
+        onToggleAutoDownload = viewModel::toggleAutoDownload,
     )
 }
 
@@ -84,7 +91,8 @@ internal fun PodcastScreen(
  * A show's page, drawn from its state alone so screenshot tests can render it.
  * [onUnsubscribe] is called once the listener has confirmed it. Tapping an episode calls
  * [onPlayEpisode] (play, or play/pause if it's the loaded one); long-pressing it offers
- * [onPlayNext], [onAddToQueue] and [onTogglePlayed]. The top bar's menu offers
+ * [onPlayNext], [onAddToQueue], [onTogglePlayed] and [onDownload] or [onRemoveDownload].
+ * The top bar's menu offers [onToggleAutoDownload] (checked when the show auto-downloads),
  * [onMarkAllPlayed] (at once) and unsubscribing.
  */
 @Composable
@@ -99,6 +107,9 @@ internal fun PodcastContent(
     onMarkAllPlayed: () -> Unit = {},
     onPlayNext: (Episode) -> Unit = {},
     onAddToQueue: (Episode) -> Unit = {},
+    onDownload: (Episode) -> Unit = {},
+    onRemoveDownload: (Episode) -> Unit = {},
+    onToggleAutoDownload: () -> Unit = {},
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmUnsubscribe by rememberSaveable { mutableStateOf(false) }
@@ -125,6 +136,17 @@ internal fun PodcastContent(
                             )
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.library_auto_download)) },
+                                onClick = {
+                                    menuOpen = false
+                                    onToggleAutoDownload()
+                                },
+                                // The item handles the click; the box only shows the state.
+                                trailingIcon = {
+                                    Checkbox(checked = podcast.autoDownload, onCheckedChange = null)
+                                },
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.library_mark_all_played)) },
                                 onClick = {
@@ -189,6 +211,9 @@ internal fun PodcastContent(
                             onTogglePlayed = { onTogglePlayed(episode) },
                             onPlayNext = { onPlayNext(episode) },
                             onAddToQueue = { onAddToQueue(episode) },
+                            download = state.downloads[episode.id],
+                            onDownload = { onDownload(episode) },
+                            onRemoveDownload = { onRemoveDownload(episode) },
                         )
                     }
                 }

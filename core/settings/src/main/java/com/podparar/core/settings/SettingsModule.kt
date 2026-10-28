@@ -26,4 +26,9 @@ internal object SettingsModule {
     @Singleton
     fun providePlaybackSettings(dataStore: DataStore<Preferences>): PlaybackSettings =
         DataStorePlaybackSettings(dataStore)
+
+    @Provides
+    @Singleton
+    fun provideDownloadSettings(dataStore: DataStore<Preferences>): DownloadSettings =
+        DataStoreDownloadSettings(dataStore)
 }

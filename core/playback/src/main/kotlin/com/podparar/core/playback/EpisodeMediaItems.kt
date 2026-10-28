@@ -11,6 +11,7 @@ import androidx.media3.common.util.UnstableApi
 import com.podparar.core.model.Episode
 import com.podparar.core.model.NowPlaying
 import com.podparar.core.model.Podcast
+import java.io.File
 
 /** Translation between `:core:model` types and Media3 items. Media3 stays inside this module. */
 @OptIn(UnstableApi::class)
@@ -22,9 +23,10 @@ internal object EpisodeMediaItems {
      * mediaId = episode id. The URI is set twice: as the local configuration and as
      * [MediaItem.RequestMetadata.mediaUri], because the local configuration doesn't cross
      * from a MediaController to the session; the service rebuilds it from the request metadata.
+     * With a [localFile] (a finished download), that file is played instead of the audio URL.
      */
-    fun build(episode: Episode, podcast: Podcast?): MediaItem {
-        val audioUri = Uri.parse(episode.audioUrl)
+    fun build(episode: Episode, podcast: Podcast?, localFile: File? = null): MediaItem {
+        val audioUri = localFile?.let(Uri::fromFile) ?: Uri.parse(episode.audioUrl)
         val artwork = episode.imageUrl ?: podcast?.artworkUrl
         val extras = Bundle().apply { putString(EXTRA_PODCAST_URL, episode.podcastUrl) }
         val metadata = MediaMetadata.Builder()

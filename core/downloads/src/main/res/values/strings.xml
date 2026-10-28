@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloads_channel">Downloads</string>
+    <string name="downloads_channel_description">Progress of episodes being downloaded</string>
+    <string name="downloads_new_episodes_channel">New episodes</string>
+    <string name="downloads_new_episodes_channel_description">New episodes found by the background refresh</string>
+    <string name="downloads_downloading">Downloading</string>
+    <!-- One line of the new-episodes notification: show title, episode title. -->
+    <string name="downloads_episode_line">%1$s: %2$s</string>
+</resources>

@@ -32,6 +32,7 @@ class LibraryViewModel @Inject constructor(
         refreshing.value = true
         viewModelScope.launch {
             try {
+                // The RefreshResult (failures, new episodes) is for the background refresh's alert.
                 repository.refreshAll()
             } catch (e: PodcastException) {
                 // refreshAll counts failures itself; nothing to show beyond what's stored.

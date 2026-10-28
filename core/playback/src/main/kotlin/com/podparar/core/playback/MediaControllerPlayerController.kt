@@ -8,6 +8,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.podparar.core.data.DownloadRepository
 import com.podparar.core.data.EpisodeRepository
 import com.podparar.core.data.QueueRepository
 import com.podparar.core.model.NowPlaying
@@ -46,6 +47,7 @@ internal class MediaControllerPlayerController @Inject constructor(
     private val episodes: EpisodeRepository,
     private val settings: PlaybackSettings,
     private val queue: QueueRepository,
+    private val downloads: DownloadRepository,
 ) : PlayerController {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -103,12 +105,13 @@ internal class MediaControllerPlayerController @Inject constructor(
         }
         val episode = episodes.getEpisode(episodeId) ?: return@enqueue
         val podcast = episodes.getPodcast(episode.podcastUrl)
+        val localFile = LocalAudio.fileFor(downloads, episodeId)
         val speed = PlaybackSpeeds.clamp(settings.speed.first())
         // The controller may have dropped while loading: use whichever is connected now.
         val player = connectedController() ?: return@enqueue
         saveCurrentPosition(player)
         player.setMediaItem(
-            EpisodeMediaItems.build(episode, podcast),
+            EpisodeMediaItems.build(episode, podcast, localFile),
             PlaybackRules.resumePositionMs(episode),
         )
         player.setPlaybackSpeed(speed)

@@ -5,10 +5,11 @@
     <string name="library_find_show">Find a show</string>
     <string name="library_back">Back</string>
     <string name="library_more_options">More options</string>
+    <string name="library_auto_download">Auto-download new episodes</string>
     <string name="library_mark_all_played">Mark all played</string>
     <string name="library_unsubscribe">Unsubscribe</string>
     <string name="library_unsubscribe_title">Unsubscribe from %1$s?</string>
-    <string name="library_unsubscribe_body">The show and its episodes will be removed from this phone.</string>
+    <string name="library_unsubscribe_body">The show, its episodes and their downloads will be removed from this phone.</string>
     <string name="library_more">More</string>
     <string name="library_less">Less</string>
     <string name="library_show_not_found">Show not found</string>

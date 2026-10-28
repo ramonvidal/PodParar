@@ -22,6 +22,10 @@ internal abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindQueueRepository(impl: DefaultQueueRepository): QueueRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDownloadRepository(impl: DefaultDownloadRepository): DownloadRepository
 }
 
 @Module
