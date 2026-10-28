@@ -105,10 +105,13 @@ build-logic/
 - [ ] **Extras (later).** Chapters, Android Auto, a home-screen widget, episode search
       inside a show.
 
+## Settled questions
+
+- **Tabs**: Home / Library / Discover, with the queue (Up next) on Home.
+- **Accent colour**: ChoreMe's green.
+- **Downloads**: in Phase 4, as planned.
+- **Sync**: local only; OPML moves subscriptions between phones.
+
 ## Open questions
 
-- **Tabs**: Home / Library / Discover, with the queue on Home? Or a separate Queue tab?
-- **Accent colour**: ChoreMe's green, or a colour of PodParar's own?
-- **Downloads**: keep them in Phase 4, or are streaming-only builds enough at first?
-- **Sync**: local only (OPML to move phones) is the plan. Should playback progress
-  ever sync between phones?
+- None right now.
