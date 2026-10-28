@@ -86,7 +86,7 @@ build-logic/
       plugins and the module-rules check copied from ChoreMe, theme and Figtree,
       bottom navigation with Home / Library / Discover placeholders, GitHub Actions
       building the APK, running the tests and publishing a release.
-- [ ] **Phase 1: Subscribe.** Discover tab: search the Apple Podcasts directory, add
+- [x] **Phase 1: Subscribe.** Discover tab: search the Apple Podcasts directory, add
       by RSS link. Feed parsing with tests against real-world feeds (CDATA, missing
       guids, odd dates, `HH:MM:SS` and seconds durations). Library grid, show page with
       episodes, pull-to-refresh, unsubscribe.
