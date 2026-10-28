@@ -93,7 +93,7 @@ build-logic/
 - [x] **Phase 2: Play.** Media3 service with lock screen, notification and headphone
       controls; mini player and full player; back 10 / forward 30; speed; resume
       where you stopped; played rules; mark played/unplayed.
-- [ ] **Phase 3: Home and queue.** Continue listening, Up next (play next, add, drag to
+- [x] **Phase 3: Home and queue.** Continue listening, Up next (play next, add, drag to
       reorder, swipe away, auto-continue), New episodes, "Mark all played".
 - [ ] **Phase 4: Offline and background.** Downloads (Wi-Fi only option, progress,
       delete), auto-download newest, background refresh every few hours, new-episode
