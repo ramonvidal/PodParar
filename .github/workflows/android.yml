@@ -31,6 +31,17 @@ jobs:
       - name: Unit tests
         run: ./gradlew :core:model:test testDebugUnitTest
 
+      # Room writes the database schema while compiling; it must be committed (CLAUDE.md, "Data").
+      # On a mismatch the generated files are printed so they can be copied into the repo.
+      - name: Room schemas are committed
+        run: |
+          if [ -n "$(git status --porcelain core/database/schemas)" ]; then
+            echo "::error::core/database/schemas differs from what Room generated; commit the files below."
+            git status --porcelain core/database/schemas
+            find core/database/schemas -name '*.json' -exec sh -c 'echo "=== $1"; cat "$1"; echo "=== end"' _ {} \;
+            exit 1
+          fi
+
       # Pictures of the screens that the UI tests draw (Roborazzi), for checking the layout.
       - name: Collect screenshots
         if: always()
