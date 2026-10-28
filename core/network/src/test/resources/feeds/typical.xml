@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:atom="http://www.w3.org/2005/Atom"
+     xmlns:podcast="https://podcastindex.org/namespace/1.0">
+  <channel>
+    <atom:link href="https://feeds.example.com/workshop" rel="self" type="application/rss+xml"/>
+    <title>  The Workshop Hour  </title>
+    <link>https://workshop.example.com</link>
+    <language>en-us</language>
+    <copyright>&#169; 2024 Workshop Media</copyright>
+    <itunes:author>Workshop Media</itunes:author>
+    <itunes:owner>
+      <itunes:name>Jane Maker</itunes:name>
+      <itunes:email>jane@workshop.example.com</itunes:email>
+    </itunes:owner>
+    <description><![CDATA[<p>Weekly conversations about <b>making things</b> by hand.</p>]]></description>
+    <itunes:summary>Weekly conversations about making things by hand.</itunes:summary>
+    <itunes:image href="https://cdn.example.com/workshop/itunes-3000.jpg"/>
+    <image>
+      <url>https://cdn.example.com/workshop/rss-144.jpg</url>
+      <title>The Workshop Hour</title>
+      <link>https://workshop.example.com</link>
+    </image>
+    <itunes:category text="Leisure">
+      <itunes:category text="Hobbies"/>
+    </itunes:category>
+    <itunes:explicit>false</itunes:explicit>
+    <itunes:type>episodic</itunes:type>
+    <item>
+      <title>Ep. 42: Sharpening chisels</title>
+      <itunes:title>Sharpening chisels</itunes:title>
+      <itunes:episode>42</itunes:episode>
+      <guid isPermaLink="false">workshop-ep-42</guid>
+      <pubDate>Wed, 02 Oct 2024 10:00:00 +0000</pubDate>
+      <description><![CDATA[Short notes for episode 42.]]></description>
+      <content:encoded><![CDATA[
+        <p>This week: <a href="https://workshop.example.com/42">sharpening chisels</a> &amp; plane irons.</p>
+        <ul><li>Waterstones</li><li>Honing guides</li></ul>
+      ]]></content:encoded>
+      <itunes:summary>Summary for 42.</itunes:summary>
+      <enclosure url="https://cdn.example.com/workshop/ep42.mp3" length="58123456" type="audio/mpeg"/>
+      <itunes:duration>01:02:03</itunes:duration>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>Ep. 41: Glue-ups</title>
+      <guid isPermaLink="false">workshop-ep-41</guid>
+      <pubDate>Wed, 25 Sep 2024 10:00:00 +0000</pubDate>
+      <description><![CDATA[<p>All about <i>glue-ups</i>.</p>]]></description>
+      <enclosure url="https://cdn.example.com/workshop/ep41.mp3" length="41000000" type="audio/mpeg"/>
+      <itunes:duration>45:30</itunes:duration>
+      <itunes:image href="https://cdn.example.com/workshop/ep41-art.jpg"/>
+    </item>
+    <item>
+      <title>Ep. 40: Trailer</title>
+      <guid>https://workshop.example.com/episodes/40</guid>
+      <pubDate>Wed, 18 Sep 2024 10:00:00 +0000</pubDate>
+      <itunes:summary>Only an iTunes summary here.</itunes:summary>
+      <enclosure url="https://cdn.example.com/workshop/ep40.mp3" length="1200000" type="audio/mpeg"/>
+      <itunes:duration>95</itunes:duration>
+    </item>
+  </channel>
+</rss>
