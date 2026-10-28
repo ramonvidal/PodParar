@@ -72,3 +72,18 @@ message naming the broken rule. Never weaken or bypass it to get a build green.
 CI runs all of these. The Android SDK can't be downloaded in Claude's cloud sessions,
 so there CI is the only full Android build: don't call an Android change done until
 CI is green.
+
+## 4. How Claude works on this repo (the owner's standing requirement)
+
+- **One coordinator agent per task or phase.** It splits the work into specific,
+  self-contained subtasks, hands each to its own subagent, gives each one a clear
+  scope (the modules and files it owns), and merges and checks the results. It doesn't
+  write the bulk of the code itself.
+- **Subagents get narrow jobs**, usually one module or one feature each, with the
+  module rules above in their instructions. Subagents whose files don't overlap run
+  in parallel.
+- **Tests are written by a separate agent**, never by the agent that wrote the code
+  under test. The test agent works from the spec (`PLAN.md`, the public API and the
+  rules), not from the implementation, so tests catch what the implementer missed.
+- The coordinator runs the checks in section 3 (through CI) and sends failures back
+  to the agent that owns the failing code or test.
