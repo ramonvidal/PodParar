@@ -19,7 +19,7 @@ in the way and what you propose, before writing the code.
 | `:core:network` | OkHttp: feed download and RSS parsing, Apple Podcasts search | `:core:model` |
 | `:core:data` | Repositories joining network and database | `:core:model`, `:core:database`, `:core:network` |
 | `:core:playback` | Media3 `MediaSessionService`, the player connection the UI uses, sleep timer, speed | `:core:model`, `:core:data`, `:core:settings` |
-| `:core:downloads` | Episode downloads and storage clean-up (WorkManager) | `:core:model`, `:core:data`, `:core:settings` |
+| `:core:downloads` | Episode downloads, background feed refresh, new-episode alerts and storage clean-up (WorkManager) | `:core:model`, `:core:data`, `:core:settings` |
 | `:core:settings` | This phone's choices (DataStore) | `:core:model` |
 | `:core:ui` | Theme, shared composables, strings used by more than one feature | `:core:model` |
 | `:core:update` | Updating the app itself from the GitHub release page | `:core:model` |

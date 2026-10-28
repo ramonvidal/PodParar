@@ -64,7 +64,7 @@ core/database/      Room: tables, DAOs, migrations
 core/network/       OkHttp: feed download + RSS parsing, Apple Podcasts search
 core/data/          Repositories joining network and database (subscriptions, episodes, queue)
 core/playback/      Media3 service, player connection for the UI, sleep timer, speed
-core/downloads/     Episode downloads (WorkManager), storage clean-up
+core/downloads/     Downloads, background refresh, new-episode alerts, clean-up (WorkManager)
 core/settings/      This phone's choices (DataStore): skip lengths, auto-download, alerts
 core/ui/            Theme, artwork, episode row, progress ring, shared strings
 core/update/        Updating the app itself from the release page (ported from ChoreMe)
