@@ -34,6 +34,8 @@ jobs:
       # Room writes the database schema while compiling; it must be committed (CLAUDE.md, "Data").
       # On a mismatch the generated files are printed so they can be copied into the repo.
       - name: Room schemas are committed
+        # Also after failed tests: a new schema version's migration test fails until its schema is committed.
+        if: always()
         run: |
           if [ -n "$(git status --porcelain core/database/schemas)" ]; then
             echo "::error::core/database/schemas differs from what Room generated; commit the files below."
