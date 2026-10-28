@@ -9,6 +9,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.podparar.core.data.EpisodeRepository
+import com.podparar.core.data.QueueRepository
 import com.podparar.core.model.NowPlaying
 import com.podparar.core.model.PlaybackRules
 import com.podparar.core.model.PlaybackSpeeds
@@ -44,6 +45,7 @@ internal class MediaControllerPlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
     private val episodes: EpisodeRepository,
     private val settings: PlaybackSettings,
+    private val queue: QueueRepository,
 ) : PlayerController {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -112,6 +114,7 @@ internal class MediaControllerPlayerController @Inject constructor(
         player.setPlaybackSpeed(speed)
         player.prepare()
         player.play()
+        removeFromQueue(episodeId)
     }
 
     override fun togglePlayPause() = enqueue(::toggle)
@@ -186,6 +189,19 @@ internal class MediaControllerPlayerController @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Couldn't save the position", e)
+            }
+        }
+    }
+
+    /** The episode now playing isn't "up next" any more. */
+    private fun removeFromQueue(episodeId: String) {
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) { queue.remove(episodeId) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Couldn't update Up next", e)
             }
         }
     }

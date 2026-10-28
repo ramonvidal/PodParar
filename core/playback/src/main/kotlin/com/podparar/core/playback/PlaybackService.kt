@@ -16,7 +16,10 @@ import androidx.media3.session.MediaSessionService
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.podparar.core.data.EpisodeRepository
+import com.podparar.core.data.QueueRepository
+import com.podparar.core.model.Episode
 import com.podparar.core.model.PlaybackRules
+import com.podparar.core.model.Podcast
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -36,7 +39,8 @@ import kotlinx.coroutines.withContext
 /**
  * Hosts the ExoPlayer and the MediaSession that the notification, lock screen, headphones
  * and [MediaControllerPlayerController] talk to. Keeps the database's position and played
- * state up to date while it plays.
+ * state up to date while it plays. When an episode ends, it carries on with the first
+ * episode in Up next ([QueueRepository.takeNext]).
  */
 @OptIn(UnstableApi::class)
 @AndroidEntryPoint
@@ -44,6 +48,9 @@ internal class PlaybackService : MediaSessionService() {
 
     @Inject
     lateinit var episodes: EpisodeRepository
+
+    @Inject
+    lateinit var queue: QueueRepository
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -227,6 +234,47 @@ internal class PlaybackService : MediaSessionService() {
                     episodes.setPlayed(id, true)
                 }
             }
+            // A separate write, so a failed save doesn't stop the queue from carrying on.
+            write { continueWithQueue(player, endedId = id) }
+        }
+    }
+
+    /**
+     * After [endedId] finished: loads the next queued episode on the same player, at its
+     * resume position and the current speed, and plays it. Empty queue: stays stopped.
+     * Runs inside [write], after the ended episode's writes; player calls stay on the
+     * main thread.
+     */
+    private suspend fun continueWithQueue(player: Player, endedId: String) {
+        val next = withContext(Dispatchers.IO) { takeNextPlayable() } ?: return
+        val (episode, podcast) = next
+        // Something else may have been started (or the ended one replayed) meanwhile:
+        // then leave the player alone and put the episode back at the front of Up next.
+        val stillEnded = session != null &&
+            player.playbackState == Player.STATE_ENDED &&
+            player.currentMediaItem?.mediaId == endedId
+        if (!stillEnded) {
+            if (player.currentMediaItem?.mediaId != episode.id) {
+                withContext(Dispatchers.IO) { queue.playNext(episode.id) }
+            }
+            return
+        }
+        val speed = player.playbackParameters.speed
+        player.setMediaItem(
+            EpisodeMediaItems.build(episode, podcast),
+            PlaybackRules.resumePositionMs(episode),
+        )
+        player.setPlaybackSpeed(speed)
+        player.prepare()
+        player.play()
+    }
+
+    /** Takes queued ids until one still names an episode; null when the queue runs out. */
+    private suspend fun takeNextPlayable(): Pair<Episode, Podcast?>? {
+        while (true) {
+            val id = queue.takeNext() ?: return null
+            val episode = episodes.getEpisode(id) ?: continue
+            return episode to episodes.getPodcast(episode.podcastUrl)
         }
     }
 

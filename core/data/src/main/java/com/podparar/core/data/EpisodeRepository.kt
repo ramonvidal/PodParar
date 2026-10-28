@@ -1,6 +1,7 @@
 package com.podparar.core.data
 
 import com.podparar.core.model.Episode
+import com.podparar.core.model.EpisodeWithPodcast
 import com.podparar.core.model.Podcast
 import kotlinx.coroutines.flow.Flow
 
@@ -21,4 +22,13 @@ interface EpisodeRepository {
 
     /** Marks played or unplayed; either way the position goes back to 0. */
     suspend fun setPlayed(id: String, played: Boolean)
+
+    /** In-progress episodes for "Continue listening" (store.observeInProgress(10)). */
+    val continueListening: Flow<List<EpisodeWithPodcast>>
+
+    /** Unplayed, unstarted episodes for "New episodes" (store.observeNewEpisodes(50)). */
+    val newEpisodes: Flow<List<EpisodeWithPodcast>>
+
+    /** Marks every episode of that show played (positions back to 0). */
+    suspend fun markAllPlayed(feedUrl: String)
 }

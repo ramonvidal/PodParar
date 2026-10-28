@@ -15,7 +15,9 @@ internal object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): PodPararDatabase =
-        Room.databaseBuilder(context, PodPararDatabase::class.java, PodPararDatabase.NAME).build()
+        Room.databaseBuilder(context, PodPararDatabase::class.java, PodPararDatabase.NAME)
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides
     @Singleton

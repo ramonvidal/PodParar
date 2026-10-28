@@ -74,6 +74,9 @@ internal fun PodcastScreen(
         onUnsubscribe = { viewModel.unsubscribe(onDone = onBack) },
         onPlayEpisode = viewModel::play,
         onTogglePlayed = viewModel::togglePlayed,
+        onMarkAllPlayed = viewModel::markAllPlayed,
+        onPlayNext = viewModel::playNext,
+        onAddToQueue = viewModel::addToQueue,
     )
 }
 
@@ -81,7 +84,8 @@ internal fun PodcastScreen(
  * A show's page, drawn from its state alone so screenshot tests can render it.
  * [onUnsubscribe] is called once the listener has confirmed it. Tapping an episode calls
  * [onPlayEpisode] (play, or play/pause if it's the loaded one); long-pressing it offers
- * [onTogglePlayed].
+ * [onPlayNext], [onAddToQueue] and [onTogglePlayed]. The top bar's menu offers
+ * [onMarkAllPlayed] (at once) and unsubscribing.
  */
 @Composable
 internal fun PodcastContent(
@@ -92,6 +96,9 @@ internal fun PodcastContent(
     modifier: Modifier = Modifier,
     onPlayEpisode: (Episode) -> Unit = {},
     onTogglePlayed: (Episode) -> Unit = {},
+    onMarkAllPlayed: () -> Unit = {},
+    onPlayNext: (Episode) -> Unit = {},
+    onAddToQueue: (Episode) -> Unit = {},
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmUnsubscribe by rememberSaveable { mutableStateOf(false) }
@@ -118,6 +125,13 @@ internal fun PodcastContent(
                             )
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.library_mark_all_played)) },
+                                onClick = {
+                                    menuOpen = false
+                                    onMarkAllPlayed()
+                                },
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.library_unsubscribe)) },
                                 onClick = {
@@ -173,6 +187,8 @@ internal fun PodcastContent(
                             isCurrent = isCurrent,
                             isPlaying = isCurrent && state.isPlaying,
                             onTogglePlayed = { onTogglePlayed(episode) },
+                            onPlayNext = { onPlayNext(episode) },
+                            onAddToQueue = { onAddToQueue(episode) },
                         )
                     }
                 }

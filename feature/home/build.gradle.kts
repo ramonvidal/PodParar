@@ -6,3 +6,8 @@ plugins {
 android {
     namespace = "com.podparar.feature.home"
 }
+
+dependencies {
+    implementation(projects.core.playback)
+    implementation(libs.reorderable)
+}

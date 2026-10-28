@@ -16,4 +16,7 @@
     <string name="mark_played">Mark as played</string>
     <string name="mark_unplayed">Mark as unplayed</string>
     <string name="speed">Speed</string>
+    <string name="play_next">Play next</string>
+    <string name="add_to_queue">Add to queue</string>
+    <string name="remove_from_queue">Remove from Up next</string>
 </resources>

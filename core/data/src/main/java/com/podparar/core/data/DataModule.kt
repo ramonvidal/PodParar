@@ -18,6 +18,10 @@ internal abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindEpisodeRepository(impl: DefaultEpisodeRepository): EpisodeRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindQueueRepository(impl: DefaultQueueRepository): QueueRepository
 }
 
 @Module

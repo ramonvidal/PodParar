@@ -5,13 +5,14 @@ import androidx.room.RoomDatabase
 
 /** Schemas are exported to core/database/schemas; every version bump needs a migration and a migration test. */
 @Database(
-    entities = [PodcastEntity::class, EpisodeEntity::class],
-    version = 1,
+    entities = [PodcastEntity::class, EpisodeEntity::class, QueueEntity::class],
+    version = 2,
     exportSchema = true,
 )
 internal abstract class PodPararDatabase : RoomDatabase() {
     abstract fun podcastDao(): PodcastDao
     abstract fun episodeDao(): EpisodeDao
+    abstract fun queueDao(): QueueDao
 
     companion object {
         const val NAME = "podparar.db"

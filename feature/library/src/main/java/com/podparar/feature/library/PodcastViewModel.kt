@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.podparar.core.data.EpisodeRepository
 import com.podparar.core.data.PodcastRepository
+import com.podparar.core.data.QueueRepository
 import com.podparar.core.model.Episode
 import com.podparar.core.model.LoadError
 import com.podparar.core.model.PodcastException
@@ -23,7 +24,7 @@ import kotlinx.coroutines.launch
 
 /**
  * One show's page: the show and its episodes from the database, refresh and unsubscribe,
- * playing an episode and marking it played or unplayed.
+ * playing an episode, marking it (or the whole show) played or unplayed, and adding it to Up next.
  */
 @HiltViewModel
 class PodcastViewModel @Inject constructor(
@@ -31,6 +32,7 @@ class PodcastViewModel @Inject constructor(
     private val repository: PodcastRepository,
     private val episodes: EpisodeRepository,
     private val controller: PlayerController,
+    private val queue: QueueRepository,
 ) : ViewModel() {
 
     /** Navigation has already decoded the path argument, so this is the feed URL as stored. */
@@ -91,6 +93,27 @@ class PodcastViewModel @Inject constructor(
     fun togglePlayed(episode: Episode) {
         viewModelScope.launch {
             episodes.setPlayed(episode.id, !episode.played)
+        }
+    }
+
+    /** Marks every episode of this show played. */
+    fun markAllPlayed() {
+        viewModelScope.launch {
+            episodes.markAllPlayed(feedUrl)
+        }
+    }
+
+    /** Puts [episode] at the front of Up next. */
+    fun playNext(episode: Episode) {
+        viewModelScope.launch {
+            queue.playNext(episode.id)
+        }
+    }
+
+    /** Adds [episode] to the end of Up next (no change if it's already there). */
+    fun addToQueue(episode: Episode) {
+        viewModelScope.launch {
+            queue.add(episode.id)
         }
     }
 

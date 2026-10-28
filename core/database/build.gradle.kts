@@ -9,6 +9,8 @@ android {
     namespace = "com.podparar.core.database"
     // Robolectric tests run against an in-memory database and need the merged resources.
     testOptions.unitTests.isIncludeAndroidResources = true
+    // MigrationTestHelper reads the exported schemas as test assets.
+    sourceSets.getByName("test").assets.srcDir("$projectDir/schemas")
 }
 
 room {
@@ -28,4 +30,5 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.room.testing)
 }

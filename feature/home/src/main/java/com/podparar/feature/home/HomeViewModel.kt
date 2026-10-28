@@ -1,0 +1,84 @@
+package com.podparar.feature.home
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.podparar.core.data.EpisodeRepository
+import com.podparar.core.data.PodcastRepository
+import com.podparar.core.data.QueueRepository
+import com.podparar.core.model.Episode
+import com.podparar.core.playback.PlayerController
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+/**
+ * Home: what's under way, the queue and the newest episodes, all from the database, plus
+ * playing an episode, queue changes and marking played or unplayed.
+ */
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val episodes: EpisodeRepository,
+    private val queue: QueueRepository,
+    repository: PodcastRepository,
+    private val player: PlayerController,
+) : ViewModel() {
+
+    internal val uiState: StateFlow<HomeUiState> =
+        combine(
+            episodes.continueListening,
+            queue.queue,
+            episodes.newEpisodes,
+            repository.podcasts.map { it.isNotEmpty() }.distinctUntilChanged(),
+            // Only which episode is loaded and whether it plays matter here, not the
+            // position ticks, so Home isn't rebuilt every half second.
+            player.nowPlaying
+                .map { PlayingState(it?.episodeId, it?.isPlaying == true) }
+                .distinctUntilChanged(),
+        ) { continueListening, upNext, newEpisodes, hasSubscriptions, playing ->
+            HomeUiState(
+                continueListening = continueListening,
+                upNext = upNext,
+                newEpisodes = newEpisodes,
+                hasSubscriptions = hasSubscriptions,
+                isLoading = false,
+                nowPlayingId = playing.episodeId,
+                isPlaying = playing.isPlaying,
+                now = System.currentTimeMillis(),
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
+
+    /** Plays [episode] from where it was left; if it's already loaded, toggles play/pause. */
+    fun play(episode: Episode) {
+        player.play(episode.id)
+    }
+
+    fun playNext(episode: Episode) {
+        viewModelScope.launch { queue.playNext(episode.id) }
+    }
+
+    fun addToQueue(episode: Episode) {
+        viewModelScope.launch { queue.add(episode.id) }
+    }
+
+    fun removeFromQueue(episode: Episode) {
+        viewModelScope.launch { queue.remove(episode.id) }
+    }
+
+    /** Moves the Up next item at [from] to [to] (indices within Up next). */
+    fun moveInQueue(from: Int, to: Int) {
+        viewModelScope.launch { queue.move(from, to) }
+    }
+
+    /** Marks [episode] played if it wasn't, unplayed if it was. */
+    fun togglePlayed(episode: Episode) {
+        viewModelScope.launch { episodes.setPlayed(episode.id, !episode.played) }
+    }
+
+    private data class PlayingState(val episodeId: String?, val isPlaying: Boolean)
+}

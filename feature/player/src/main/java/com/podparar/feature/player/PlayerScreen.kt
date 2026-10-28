@@ -19,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -208,6 +209,14 @@ private fun SeekBar(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit) 
                 draggingMs = null
             },
             enabled = known,
+            // The default track draws a "stop indicator" dot at its end; not on this bar.
+            track = { sliderState ->
+                SliderDefaults.Track(
+                    sliderState = sliderState,
+                    enabled = known,
+                    drawStopIndicator = null,
+                )
+            },
             valueRange = 0f..(if (known) durationMs.toFloat() else 1f),
             modifier = Modifier
                 .fillMaxWidth()

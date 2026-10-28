@@ -2,6 +2,7 @@ package com.podparar.core.database
 
 import androidx.room.withTransaction
 import com.podparar.core.model.Episode
+import com.podparar.core.model.EpisodeWithPodcast
 import com.podparar.core.model.FeedMerge
 import com.podparar.core.model.ParsedFeed
 import com.podparar.core.model.Podcast
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.map
 internal class RoomPodcastStore(private val db: PodPararDatabase) : PodcastStore {
     private val podcastDao = db.podcastDao()
     private val episodeDao = db.episodeDao()
+    private val queueDao = db.queueDao()
 
     override fun observePodcasts(): Flow<List<Podcast>> =
         podcastDao.observeAll().map { list -> list.map { it.toModel() } }
@@ -40,6 +42,7 @@ internal class RoomPodcastStore(private val db: PodPararDatabase) : PodcastStore
 
     override suspend fun deletePodcast(feedUrl: String) {
         db.withTransaction {
+            queueDao.deleteForPodcast(feedUrl)
             episodeDao.deleteFor(feedUrl)
             podcastDao.delete(feedUrl)
         }
@@ -58,5 +61,29 @@ internal class RoomPodcastStore(private val db: PodPararDatabase) : PodcastStore
 
     override suspend fun setPlayed(id: String, played: Boolean) {
         episodeDao.setPlayed(id, played)
+    }
+
+    override fun observeQueue(): Flow<List<EpisodeWithPodcast>> =
+        queueDao.observe().map { rows -> rows.map { it.toModel() } }
+
+    override suspend fun queueIds(): List<String> = queueDao.ids()
+
+    override suspend fun setQueue(ids: List<String>) {
+        // The table's key is the episode id, so a repeated id keeps its first place.
+        val entries = ids.distinct().mapIndexed { index, id -> QueueEntity(episodeId = id, position = index) }
+        db.withTransaction {
+            queueDao.clear()
+            if (entries.isNotEmpty()) queueDao.insertAll(entries)
+        }
+    }
+
+    override fun observeInProgress(limit: Int): Flow<List<EpisodeWithPodcast>> =
+        episodeDao.observeInProgress(limit).map { rows -> rows.map { it.toModel() } }
+
+    override fun observeNewEpisodes(limit: Int): Flow<List<EpisodeWithPodcast>> =
+        episodeDao.observeNew(limit).map { rows -> rows.map { it.toModel() } }
+
+    override suspend fun markAllPlayed(feedUrl: String) {
+        episodeDao.markAllPlayed(feedUrl)
     }
 }

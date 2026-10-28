@@ -29,6 +29,25 @@ internal interface EpisodeDao {
     @Query("UPDATE episodes SET played = :played, positionMs = 0 WHERE id = :id")
     suspend fun setPlayed(id: String, played: Boolean)
 
+    @Query("UPDATE episodes SET played = 1, positionMs = 0 WHERE podcastUrl = :feedUrl")
+    suspend fun markAllPlayed(feedUrl: String)
+
+    @Query(
+        "SELECT episodes.*, podcasts.title AS podcastTitle, podcasts.artworkUrl AS podcastArtworkUrl " +
+            "FROM episodes INNER JOIN podcasts ON podcasts.feedUrl = episodes.podcastUrl " +
+            "WHERE episodes.played = 0 AND episodes.positionMs > 0 " +
+            "ORDER BY episodes.lastPlayedAt DESC, episodes.id ASC LIMIT :limit",
+    )
+    fun observeInProgress(limit: Int): Flow<List<EpisodeWithPodcastRow>>
+
+    @Query(
+        "SELECT episodes.*, podcasts.title AS podcastTitle, podcasts.artworkUrl AS podcastArtworkUrl " +
+            "FROM episodes INNER JOIN podcasts ON podcasts.feedUrl = episodes.podcastUrl " +
+            "WHERE episodes.played = 0 AND episodes.positionMs = 0 " +
+            "ORDER BY episodes.pubDate DESC, episodes.id ASC LIMIT :limit",
+    )
+    fun observeNew(limit: Int): Flow<List<EpisodeWithPodcastRow>>
+
     @Upsert
     suspend fun upsertAll(episodes: List<EpisodeEntity>)
 

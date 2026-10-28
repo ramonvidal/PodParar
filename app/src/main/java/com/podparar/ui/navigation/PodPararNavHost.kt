@@ -100,7 +100,10 @@ fun PodPararNavHost() {
             startDestination = TopLevelDestination.Home.route,
             modifier = Modifier.padding(innerPadding),
         ) {
-            homeScreen()
+            homeScreen(
+                onOpenPodcast = { navController.navigate(podcastRoute(it)) },
+                onFindShows = { navController.navigateToTab(DISCOVER_ROUTE) },
+            )
             libraryScreen(
                 onOpenPodcast = { navController.navigate(podcastRoute(it)) },
                 onFindShows = { navController.navigateToTab(DISCOVER_ROUTE) },

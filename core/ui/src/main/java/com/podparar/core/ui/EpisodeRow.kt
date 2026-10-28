@@ -43,8 +43,15 @@ import java.time.ZoneId
  *
  * Tapping the card or its round trailing button calls [onClick] (play). The button shows
  * pause when this is the [isCurrent] episode and [isPlaying], play otherwise; the current
- * episode's title is in the primary colour. When [onTogglePlayed] is set, a long press opens
- * a small menu with "Mark as played" or "Mark as unplayed".
+ * episode's title is in the primary colour.
+ *
+ * In lists that mix shows, pass [podcastTitle] and [artworkUrl]: the date line then reads
+ * "<show> · <date>" and a 48.dp picture of the episode leads the row.
+ *
+ * A long press opens a small menu listing, in this order and only for the callbacks that are
+ * set, "Play next" ([onPlayNext]), "Add to queue" ([onAddToQueue]) and "Mark as played" or
+ * "Mark as unplayed" ([onTogglePlayed]). With none of them set there is no menu.
+ * The progress bar has no stop dot at its end.
  */
 @Composable
 fun EpisodeRow(
@@ -55,9 +62,18 @@ fun EpisodeRow(
     isCurrent: Boolean = false,
     isPlaying: Boolean = false,
     onTogglePlayed: (() -> Unit)? = null,
+    podcastTitle: String? = null,
+    artworkUrl: String? = null,
+    onPlayNext: (() -> Unit)? = null,
+    onAddToQueue: (() -> Unit)? = null,
 ) {
     val dateLabel = remember(episode.pubDate, now) {
         Formats.pubDateLabel(episode.pubDate, now, ZoneId.systemDefault())
+    }
+    val topLine = when {
+        podcastTitle.isNullOrEmpty() -> dateLabel
+        dateLabel.isEmpty() -> podcastTitle
+        else -> "$podcastTitle · $dateLabel"
     }
     val notes = remember(episode.description) { HtmlText.toPlain(episode.description) }
     val duration = remember(episode.durationMs) { Formats.durationLabel(episode.durationMs) }
@@ -66,6 +82,15 @@ fun EpisodeRow(
     var menuOpen by remember { mutableStateOf(false) }
     val markLabel = stringResource(if (episode.played) R.string.mark_unplayed else R.string.mark_played)
     val showsPause = isCurrent && isPlaying
+    val playNextLabel = stringResource(R.string.play_next)
+    val addToQueueLabel = stringResource(R.string.add_to_queue)
+    val hasMenu = onPlayNext != null || onAddToQueue != null || onTogglePlayed != null
+    val menuLabel = when {
+        onPlayNext != null -> playNextLabel
+        onAddToQueue != null -> addToQueueLabel
+        onTogglePlayed != null -> markLabel
+        else -> null
+    }
 
     Card(modifier = modifier.fillMaxWidth()) {
         Box {
@@ -74,19 +99,32 @@ fun EpisodeRow(
                     .fillMaxWidth()
                     .combinedClickable(
                         onClick = onClick,
-                        onLongClick = if (onTogglePlayed != null) ({ menuOpen = true }) else null,
-                        onLongClickLabel = if (onTogglePlayed != null) markLabel else null,
+                        onLongClick = if (hasMenu) ({ menuOpen = true }) else null,
+                        onLongClickLabel = menuLabel,
                     )
                     .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                if (podcastTitle != null) {
+                    Artwork(
+                        url = artworkUrl,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 4.dp).size(48.dp),
+                    )
+                }
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    if (dateLabel.isNotEmpty()) {
-                        Text(dateLabel, style = MaterialTheme.typography.labelSmall, color = grey)
+                    if (topLine.isNotEmpty()) {
+                        Text(
+                            topLine,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = grey,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                     Text(
                         episode.title,
@@ -138,6 +176,8 @@ fun EpisodeRow(
                                         modifier = Modifier.width(72.dp).height(3.dp),
                                         color = MaterialTheme.colorScheme.primary,
                                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        gapSize = 0.dp,
+                                        drawStopIndicator = {},
                                     )
                                 }
                             }
@@ -151,23 +191,49 @@ fun EpisodeRow(
                     )
                 }
             }
-            if (onTogglePlayed != null) {
+            if (hasMenu) {
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = { Text(markLabel) },
-                        onClick = {
-                            menuOpen = false
-                            onTogglePlayed()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(
-                                    if (episode.played) R.drawable.ic_remove_done else R.drawable.ic_done_all,
-                                ),
-                                contentDescription = null,
-                            )
-                        },
-                    )
+                    if (onPlayNext != null) {
+                        DropdownMenuItem(
+                            text = { Text(playNextLabel) },
+                            onClick = {
+                                menuOpen = false
+                                onPlayNext()
+                            },
+                            leadingIcon = {
+                                Icon(painter = painterResource(R.drawable.ic_queue_play_next), contentDescription = null)
+                            },
+                        )
+                    }
+                    if (onAddToQueue != null) {
+                        DropdownMenuItem(
+                            text = { Text(addToQueueLabel) },
+                            onClick = {
+                                menuOpen = false
+                                onAddToQueue()
+                            },
+                            leadingIcon = {
+                                Icon(painter = painterResource(R.drawable.ic_playlist_add), contentDescription = null)
+                            },
+                        )
+                    }
+                    if (onTogglePlayed != null) {
+                        DropdownMenuItem(
+                            text = { Text(markLabel) },
+                            onClick = {
+                                menuOpen = false
+                                onTogglePlayed()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(
+                                        if (episode.played) R.drawable.ic_remove_done else R.drawable.ic_done_all,
+                                    ),
+                                    contentDescription = null,
+                                )
+                            },
+                        )
+                    }
                 }
             }
         }

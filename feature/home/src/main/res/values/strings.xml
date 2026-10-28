@@ -1,4 +1,21 @@
 <resources>
     <string name="home_title">Home</string>
-    <string name="home_message">New episodes from your shows will show up here.</string>
+    <string name="home_continue_listening">Continue listening</string>
+    <string name="home_up_next">Up next</string>
+    <plurals name="home_up_next_count">
+        <item quantity="one">%d episode</item>
+        <item quantity="other">%d episodes</item>
+    </plurals>
+    <string name="home_new_episodes">New episodes</string>
+    <string name="home_caught_up">You\'re all caught up</string>
+    <string name="home_empty_title">Nothing to play yet</string>
+    <string name="home_empty_body">Follow a few shows and their new episodes show up here.</string>
+    <string name="home_find_show">Find a show</string>
+    <plurals name="home_minutes_left">
+        <item quantity="one">%d min left</item>
+        <item quantity="other">%d min left</item>
+    </plurals>
+    <string name="home_reorder">Drag to reorder</string>
+    <string name="home_move_up">Move up</string>
+    <string name="home_move_down">Move down</string>
 </resources>
