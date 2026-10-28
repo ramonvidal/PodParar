@@ -1,5 +1,6 @@
 package com.podparar.core.data
 
+import com.podparar.core.model.Episode
 import com.podparar.core.model.LoadError
 import com.podparar.core.model.ParsedFeed
 import com.podparar.core.model.PodcastException
@@ -7,6 +8,7 @@ import com.podparar.core.model.SearchResult
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -125,7 +127,7 @@ class DefaultPodcastRepositoryTest {
 
     @Test
     fun `refreshAll with no subscriptions does nothing and returns 0`() = runTest {
-        assertEquals(0, repository.refreshAll())
+        assertEquals(0, repository.refreshAll().failedFeeds)
         assertTrue(feeds.fetched.isEmpty())
     }
 
@@ -134,7 +136,7 @@ class DefaultPodcastRepositoryTest {
         val urls = listOf("https://a.example.com/rss", "https://b.example.com/rss", "https://c.example.com/rss")
         urls.forEach { store.seed(podcast(it)) }
 
-        assertEquals(0, repository.refreshAll())
+        assertEquals(0, repository.refreshAll().failedFeeds)
 
         assertEquals(urls.toSet(), feeds.fetched.toSet())
         assertEquals(3, feeds.fetched.size)
@@ -151,7 +153,7 @@ class DefaultPodcastRepositoryTest {
         feeds.failures[bad1] = LoadError.OFFLINE
         feeds.failures[bad2] = LoadError.NOT_A_FEED
 
-        assertEquals(2, repository.refreshAll())
+        assertEquals(2, repository.refreshAll().failedFeeds)
 
         assertEquals(setOf(ok1, bad1, ok2, bad2), feeds.fetched.toSet())
         assertEquals(setOf(ok1, ok2), store.saved.map { it.podcast.feedUrl }.toSet())
@@ -164,7 +166,7 @@ class DefaultPodcastRepositoryTest {
             store.seed(podcast(it))
             feeds.failures[it] = LoadError.UNKNOWN
         }
-        assertEquals(2, repository.refreshAll())
+        assertEquals(2, repository.refreshAll().failedFeeds)
         assertTrue(store.saved.isEmpty())
     }
 
@@ -174,11 +176,109 @@ class DefaultPodcastRepositoryTest {
         urls.forEach { store.seed(podcast(it)) }
         feeds.delayMs = 100L
 
-        assertEquals(0, repository.refreshAll())
+        assertEquals(0, repository.refreshAll().failedFeeds)
 
         assertEquals(10, feeds.fetched.size)
         assertEquals(urls.toSet(), store.saved.map { it.podcast.feedUrl }.toSet())
         assertTrue("max in flight was ${feeds.maxInFlight}", feeds.maxInFlight in 1..4)
+    }
+
+    // Phase 4: what refresh and refreshAll report as new
+
+    @Test
+    fun `refresh returns only the episodes that were not stored before`() = runTest {
+        val url = "https://example.com/feed.xml"
+        store.seed(podcast(url), listOf(episode(url, "old", 1_000L)))
+        feeds.feeds[url] = ParsedFeed(podcast(url), listOf(episode(url, "new", 2_000L), episode(url, "old", 1_000L)))
+
+        val fresh = repository.refresh(url)
+
+        assertEquals(listOf("$url#new"), fresh.map { it.id })
+        assertEquals(setOf("$url#new", "$url#old"), store.episodes(url).map { it.id }.toSet())
+    }
+
+    @Test
+    fun `refresh with nothing new returns an empty list`() = runTest {
+        val url = "https://example.com/feed.xml"
+        store.seed(podcast(url), listOf(episode(url, "1")))
+
+        assertEquals(emptyList<Episode>(), repository.refresh(url))
+    }
+
+    @Test
+    fun `refreshAll with no subscriptions returns an empty result`() = runTest {
+        val result = repository.refreshAll()
+        assertEquals(0, result.failedFeeds)
+        assertEquals(emptyList<Episode>(), result.newEpisodes)
+    }
+
+    @Test
+    fun `refreshAll gathers the new episodes of every feed that succeeded`() = runTest {
+        val a = "https://a.example.com/rss"
+        val b = "https://b.example.com/rss"
+        val bad = "https://bad.example.com/rss"
+        store.seed(podcast(a), listOf(episode(a, "old")))
+        store.seed(podcast(b), listOf(episode(b, "kept")))
+        store.seed(podcast(bad))
+        feeds.feeds[a] = ParsedFeed(podcast(a), listOf(episode(a, "new1", 3_000L), episode(a, "new2", 2_000L), episode(a, "old")))
+        feeds.feeds[b] = ParsedFeed(podcast(b), listOf(episode(b, "kept")))
+        feeds.feeds[bad] = ParsedFeed(podcast(bad), listOf(episode(bad, "never")))
+        feeds.failures[bad] = LoadError.OFFLINE
+
+        val result = repository.refreshAll()
+
+        assertEquals(1, result.failedFeeds)
+        assertEquals(setOf("$a#new1", "$a#new2"), result.newEpisodes.map { it.id }.toSet())
+        assertEquals(2, result.newEpisodes.size)
+    }
+
+    @Test
+    fun `a second refreshAll finds nothing new`() = runTest {
+        val a = "https://a.example.com/rss"
+        store.seed(podcast(a))
+
+        assertEquals(listOf("$a#1"), repository.refreshAll().newEpisodes.map { it.id })
+        assertEquals(emptyList<Episode>(), repository.refreshAll().newEpisodes)
+    }
+
+    @Test
+    fun `refreshAll when every show fails has no new episodes`() = runTest {
+        val urls = listOf("https://a.example.com/rss", "https://b.example.com/rss")
+        urls.forEach {
+            store.seed(podcast(it))
+            feeds.failures[it] = LoadError.UNKNOWN
+        }
+        val result = repository.refreshAll()
+        assertEquals(2, result.failedFeeds)
+        assertEquals(emptyList<Episode>(), result.newEpisodes)
+    }
+
+    // Phase 4: auto-download
+
+    @Test
+    fun `setAutoDownload is written to the store`() = runTest {
+        val url = "https://a.example.com/rss"
+        store.seed(podcast(url))
+
+        repository.setAutoDownload(url, true)
+        assertEquals(listOf("setAutoDownload($url, true)"), store.autoDownloadCalls)
+        assertTrue(repository.podcast(url).first()!!.autoDownload)
+
+        repository.setAutoDownload(url, false)
+        assertEquals(listOf("setAutoDownload($url, true)", "setAutoDownload($url, false)"), store.autoDownloadCalls)
+        assertFalse(repository.podcast(url).first()!!.autoDownload)
+    }
+
+    @Test
+    fun `a refresh keeps the show's auto-download choice`() = runTest {
+        val url = "https://a.example.com/rss"
+        store.seed(podcast(url))
+        repository.setAutoDownload(url, true)
+
+        repository.refresh(url)
+        repository.refreshAll()
+
+        assertTrue(repository.podcast(url).first()!!.autoDownload)
     }
 
     // search

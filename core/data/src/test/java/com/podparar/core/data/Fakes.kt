@@ -1,6 +1,7 @@
 package com.podparar.core.data
 
 import com.podparar.core.database.PodcastStore
+import com.podparar.core.model.Download
 import com.podparar.core.model.Episode
 import com.podparar.core.model.EpisodeWithPodcast
 import com.podparar.core.model.FeedMerge
@@ -9,6 +10,7 @@ import com.podparar.core.model.ParsedFeed
 import com.podparar.core.model.Podcast
 import com.podparar.core.model.PodcastException
 import com.podparar.core.model.SearchResult
+import com.podparar.core.network.AudioDownloader
 import com.podparar.core.network.FeedSource
 import com.podparar.core.network.PodcastDirectory
 import kotlinx.coroutines.delay
@@ -101,13 +103,15 @@ internal class FakePodcastStore : PodcastStore {
 
     override suspend fun episodes(feedUrl: String): List<Episode> = episodes.value[feedUrl].orEmpty()
 
-    override suspend fun saveFeed(feed: ParsedFeed) {
-        synchronized(this) {
-            saved += feed
-            val url = feed.podcast.feedUrl
-            podcasts.value = podcasts.value + (url to feed.podcast)
-            episodes.value = episodes.value + (url to FeedMerge.merge(episodes.value[url].orEmpty(), feed.episodes))
-        }
+    /** Like the real store: returns the episodes whose ids were not stored before, keeps the stored autoDownload. */
+    override suspend fun saveFeed(feed: ParsedFeed): List<Episode> = synchronized(this) {
+        saved += feed
+        val url = feed.podcast.feedUrl
+        val known = episodes.value.values.flatten().map { it.id }.toSet()
+        val keepAuto = podcasts.value[url]?.autoDownload ?: false
+        podcasts.value = podcasts.value + (url to feed.podcast.copy(autoDownload = keepAuto))
+        episodes.value = episodes.value + (url to FeedMerge.merge(episodes.value[url].orEmpty(), feed.episodes))
+        feed.episodes.filter { it.id !in known }.distinctBy { it.id }
     }
 
     /** Every playback write, in order, e.g. "savePosition(id, 1000, 60000, 5)" or "setPlayed(id, true)". */
@@ -154,6 +158,7 @@ internal class FakePodcastStore : PodcastStore {
             podcasts.value = podcasts.value - feedUrl
             episodes.value = episodes.value - feedUrl
             queue.value = queue.value.filterNot { it in gone }
+            downloadRows.value = downloadRows.value - gone
         }
     }
 
@@ -229,6 +234,75 @@ internal class FakePodcastStore : PodcastStore {
             markAllPlayedCalls += feedUrl
             val list = episodes.value[feedUrl] ?: return
             episodes.value = episodes.value + (feedUrl to list.map { it.copy(played = true, positionMs = 0L) })
+        }
+    }
+
+    // --- Phase 4: auto-download and downloads ---
+
+    /** Every setAutoDownload call, e.g. "setAutoDownload(url, true)". */
+    val autoDownloadCalls = mutableListOf<String>()
+
+    override suspend fun setAutoDownload(feedUrl: String, enabled: Boolean) {
+        synchronized(this) {
+            autoDownloadCalls += "setAutoDownload($feedUrl, $enabled)"
+            val show = podcasts.value[feedUrl] ?: return
+            podcasts.value = podcasts.value + (feedUrl to show.copy(autoDownload = enabled))
+        }
+    }
+
+    private val downloadRows = MutableStateFlow<Map<String, Download>>(emptyMap())
+
+    /** Every row written with upsertDownload, in order. */
+    val upserts = mutableListOf<Download>()
+
+    /** Puts a download row in the store without counting it as an upsert. */
+    fun seedDownload(download: Download) {
+        downloadRows.value = downloadRows.value + (download.episodeId to download)
+    }
+
+    override fun observeDownloads(): Flow<Map<String, Download>> = downloadRows
+
+    override suspend fun download(episodeId: String): Download? = downloadRows.value[episodeId]
+
+    override suspend fun downloads(): List<Download> = downloadRows.value.values.toList()
+
+    override suspend fun upsertDownload(download: Download) {
+        synchronized(this) {
+            upserts += download
+            downloadRows.value = downloadRows.value + (download.episodeId to download)
+        }
+    }
+
+    override suspend fun deleteDownload(episodeId: String) {
+        synchronized(this) { downloadRows.value = downloadRows.value - episodeId }
+    }
+}
+
+/** Writes [content] into the target, reporting progress in [chunks] steps, or fails as told. */
+internal class FakeAudioDownloader : AudioDownloader {
+    val calls = mutableListOf<Pair<String, java.io.File>>()
+    var content: ByteArray = ByteArray(1_000) { it.toByte() }
+    var chunks = 4
+    var reportTotal = true
+    var failure: LoadError? = null
+
+    /** Runs at each progress step, after onProgress (e.g. to look at the store mid-download). */
+    var onStep: suspend (Long) -> Unit = {}
+
+    override suspend fun download(url: String, target: java.io.File, onProgress: (Long, Long) -> Unit) {
+        calls += url to target
+        failure?.let { throw PodcastException(it) }
+        val total = if (reportTotal) content.size.toLong() else 0L
+        target.outputStream().use { out ->
+            val step = (content.size + chunks - 1) / chunks
+            var done = 0
+            while (done < content.size) {
+                val n = minOf(step, content.size - done)
+                out.write(content, done, n)
+                done += n
+                onProgress(done.toLong(), total)
+                onStep(done.toLong())
+            }
         }
     }
 }
