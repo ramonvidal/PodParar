@@ -24,7 +24,8 @@ import org.robolectric.annotation.Config
 
 /**
  * Upgrading a v1 database (Phases 0-2) to v2 (adds the Up next queue) and a v2 database to v3 (adds downloads and
- * the per-show auto-download flag) keeps every show, episode, position and queue entry.
+ * the per-show auto-download flag) keeps every show, episode, position and queue entry. A v3 database to v4 adds the
+ * per-show speed (null for every existing show) and keeps every row.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
@@ -128,7 +129,7 @@ class PodPararDatabaseMigrationTest {
         helper.runMigrationsAndValidate(name, 2, true, MIGRATION_1_2).close()
 
         val room = Room.databaseBuilder(RuntimeEnvironment.getApplication(), PodPararDatabase::class.java, name)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
         try {
@@ -262,7 +263,7 @@ class PodPararDatabaseMigrationTest {
         helper.runMigrationsAndValidate(name, 3, true, MIGRATION_2_3).close()
 
         val room = Room.databaseBuilder(RuntimeEnvironment.getApplication(), PodPararDatabase::class.java, name)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
         try {
@@ -316,5 +317,212 @@ class PodPararDatabaseMigrationTest {
             assertEquals(0, c.getInt(0))
         }
         db.close()
+    }
+
+    // --- 3 -> 4: podcasts.speed ---
+
+    private val otherFeed = "https://b.example/feed"
+
+    private fun createV3() {
+        helper.createDatabase(name, 3).apply {
+            insert(
+                "podcasts",
+                SQLiteDatabase.CONFLICT_FAIL,
+                ContentValues().apply {
+                    put("feedUrl", feedUrl)
+                    put("title", "Show A")
+                    put("author", "Author A")
+                    put("description", "About A")
+                    put("artworkUrl", "https://img.example/a.jpg")
+                    put("lastRefreshed", 1_000L)
+                    put("autoDownload", 1)
+                },
+            )
+            insert(
+                "podcasts",
+                SQLiteDatabase.CONFLICT_FAIL,
+                ContentValues().apply {
+                    put("feedUrl", otherFeed)
+                    put("title", "Show B")
+                    put("author", "Author B")
+                    put("description", "About B")
+                    putNull("artworkUrl")
+                    put("lastRefreshed", 2_000L)
+                    put("autoDownload", 0)
+                },
+            )
+            insert("episodes", SQLiteDatabase.CONFLICT_FAIL, episodeRow(episodeId, "Episode one", 2_000L, 754_000L, false, 5_000L))
+            insert("episodes", SQLiteDatabase.CONFLICT_FAIL, episodeRow(otherId, "Episode two", 1_500L, 0L, true, 4_000L))
+            insert("queue", SQLiteDatabase.CONFLICT_FAIL, ContentValues().apply {
+                put("episodeId", otherId)
+                put("position", 0)
+            })
+            insert("queue", SQLiteDatabase.CONFLICT_FAIL, ContentValues().apply {
+                put("episodeId", episodeId)
+                put("position", 1)
+            })
+            insert("downloads", SQLiteDatabase.CONFLICT_FAIL, ContentValues().apply {
+                put("episodeId", episodeId)
+                put("state", "DONE")
+                put("filePath", "/files/episodes/one.audio")
+                put("bytesDownloaded", 1_000L)
+                put("totalBytes", 1_000L)
+                put("updatedAt", 9_000L)
+            })
+            close()
+        }
+    }
+
+    @Test
+    fun `migrating 3 to 4 validates against the v4 schema, keeps the rows and leaves speed null`() {
+        createV3()
+
+        val db = helper.runMigrationsAndValidate(name, 4, true, MIGRATION_3_4)
+
+        db.query("SELECT title, artworkUrl, lastRefreshed, autoDownload, speed FROM podcasts WHERE feedUrl = ?", arrayOf(feedUrl)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("Show A", c.getString(0))
+            assertEquals("https://img.example/a.jpg", c.getString(1))
+            assertEquals(1_000L, c.getLong(2))
+            assertEquals(1, c.getInt(3))
+            assertTrue(c.isNull(4))
+        }
+        db.query("SELECT autoDownload, speed FROM podcasts WHERE feedUrl = ?", arrayOf(otherFeed)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(0, c.getInt(0))
+            assertTrue(c.isNull(1))
+        }
+        db.query("SELECT positionMs, played, lastPlayedAt FROM episodes WHERE id = ?", arrayOf(episodeId)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(754_000L, c.getLong(0))
+            assertEquals(0, c.getInt(1))
+            assertEquals(5_000L, c.getLong(2))
+        }
+        db.query("SELECT played FROM episodes WHERE id = ?", arrayOf(otherId)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(1, c.getInt(0))
+        }
+        db.query("SELECT episodeId FROM queue ORDER BY position").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(otherId, c.getString(0))
+            assertTrue(c.moveToNext())
+            assertEquals(episodeId, c.getString(0))
+            assertFalse(c.moveToNext())
+        }
+        db.query("SELECT state, filePath FROM downloads WHERE episodeId = ?", arrayOf(episodeId)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("DONE", c.getString(0))
+            assertEquals("/files/episodes/one.audio", c.getString(1))
+            assertFalse(c.moveToNext())
+        }
+        db.close()
+    }
+
+    @Test
+    fun `after the 3 to 4 migration the speed column takes values and null`() {
+        createV3()
+
+        val db = helper.runMigrationsAndValidate(name, 4, true, MIGRATION_3_4)
+        db.update("podcasts", SQLiteDatabase.CONFLICT_FAIL, ContentValues().apply { put("speed", 1.5f) }, "feedUrl = ?", arrayOf(feedUrl))
+
+        db.query("SELECT speed FROM podcasts WHERE feedUrl = ?", arrayOf(feedUrl)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(1.5f, c.getFloat(0), 0.0001f)
+        }
+        db.update("podcasts", SQLiteDatabase.CONFLICT_FAIL, ContentValues().apply { putNull("speed") }, "feedUrl = ?", arrayOf(feedUrl))
+        db.query("SELECT speed FROM podcasts WHERE feedUrl = ?", arrayOf(feedUrl)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertTrue(c.isNull(0))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `the 3 to 4 migrated database opens with Room and the store reads and sets speed`() = runTest {
+        createV3()
+        helper.runMigrationsAndValidate(name, 4, true, MIGRATION_3_4).close()
+
+        val room = Room.databaseBuilder(RuntimeEnvironment.getApplication(), PodPararDatabase::class.java, name)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            val store: PodcastStore = RoomPodcastStore(room)
+
+            val show = store.podcast(feedUrl)!!
+            assertEquals("Show A", show.title)
+            assertTrue(show.autoDownload)
+            assertNull(show.speed)
+            assertNull(store.podcast(otherFeed)!!.speed)
+            assertEquals(754_000L, store.episode(episodeId)!!.positionMs)
+            assertTrue(store.episode(otherId)!!.played)
+            assertEquals(listOf(otherId, episodeId), store.queueIds())
+            assertEquals(DownloadState.DONE, store.download(episodeId)!!.state)
+
+            store.setSpeed(feedUrl, 1.5f)
+            assertEquals(1.5f, store.podcast(feedUrl)!!.speed!!, 0.0001f)
+            assertNull(store.podcast(otherFeed)!!.speed)
+
+            // A refresh after the upgrade keeps speed, auto-download and progress.
+            store.saveFeed(ParsedFeed(show.copy(autoDownload = false, speed = null), listOf(store.episode(episodeId)!!.copy(positionMs = 0L))))
+            val refreshed = store.podcast(feedUrl)!!
+            assertEquals(1.5f, refreshed.speed!!, 0.0001f)
+            assertTrue(refreshed.autoDownload)
+            assertEquals(754_000L, store.episode(episodeId)!!.positionMs)
+        } finally {
+            room.close()
+        }
+    }
+
+    @Test
+    fun `a v1 database upgrades all the way to v4`() {
+        createV1()
+
+        val db = helper.runMigrationsAndValidate(name, 4, true, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+
+        db.query("SELECT title, autoDownload, speed FROM podcasts WHERE feedUrl = ?", arrayOf(feedUrl)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("Show A", c.getString(0))
+            assertEquals(0, c.getInt(1))
+            assertTrue(c.isNull(2))
+        }
+        db.query("SELECT positionMs FROM episodes WHERE id = ?", arrayOf(episodeId)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(754_000L, c.getLong(0))
+        }
+        db.query("SELECT COUNT(*) FROM episodes").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(2, c.getInt(0))
+        }
+        db.query("SELECT COUNT(*) FROM queue").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(0, c.getInt(0))
+        }
+        db.query("SELECT COUNT(*) FROM downloads").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(0, c.getInt(0))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `a v1 database upgraded to v4 opens with Room`() = runTest {
+        createV1()
+        helper.runMigrationsAndValidate(name, 4, true, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).close()
+
+        val room = Room.databaseBuilder(RuntimeEnvironment.getApplication(), PodPararDatabase::class.java, name)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            val store: PodcastStore = RoomPodcastStore(room)
+            val show = store.podcast(feedUrl)!!
+            assertEquals("Show A", show.title)
+            assertFalse(show.autoDownload)
+            assertNull(show.speed)
+            assertEquals(754_000L, store.episode(episodeId)!!.positionMs)
+        } finally {
+            room.close()
+        }
     }
 }

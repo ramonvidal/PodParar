@@ -103,13 +103,15 @@ internal class FakePodcastStore : PodcastStore {
 
     override suspend fun episodes(feedUrl: String): List<Episode> = episodes.value[feedUrl].orEmpty()
 
-    /** Like the real store: returns the episodes whose ids were not stored before, keeps the stored autoDownload. */
+    /** Like the real store: returns the episodes whose ids were not stored before, keeps the stored autoDownload and speed. */
     override suspend fun saveFeed(feed: ParsedFeed): List<Episode> = synchronized(this) {
         saved += feed
         val url = feed.podcast.feedUrl
         val known = episodes.value.values.flatten().map { it.id }.toSet()
-        val keepAuto = podcasts.value[url]?.autoDownload ?: false
-        podcasts.value = podcasts.value + (url to feed.podcast.copy(autoDownload = keepAuto))
+        val stored = podcasts.value[url]
+        val keepAuto = stored?.autoDownload ?: false
+        val keepSpeed = stored?.speed
+        podcasts.value = podcasts.value + (url to feed.podcast.copy(autoDownload = keepAuto, speed = keepSpeed))
         episodes.value = episodes.value + (url to FeedMerge.merge(episodes.value[url].orEmpty(), feed.episodes))
         feed.episodes.filter { it.id !in known }.distinctBy { it.id }
     }
@@ -247,6 +249,19 @@ internal class FakePodcastStore : PodcastStore {
             autoDownloadCalls += "setAutoDownload($feedUrl, $enabled)"
             val show = podcasts.value[feedUrl] ?: return
             podcasts.value = podcasts.value + (feedUrl to show.copy(autoDownload = enabled))
+        }
+    }
+
+    // --- Phase 5: per-show speed ---
+
+    /** Every setSpeed call, e.g. "setSpeed(url, 1.5)" or "setSpeed(url, null)". */
+    val speedCalls = mutableListOf<String>()
+
+    override suspend fun setSpeed(feedUrl: String, speed: Float?) {
+        synchronized(this) {
+            speedCalls += "setSpeed($feedUrl, $speed)"
+            val show = podcasts.value[feedUrl] ?: return
+            podcasts.value = podcasts.value + (feedUrl to show.copy(speed = speed))
         }
     }
 
