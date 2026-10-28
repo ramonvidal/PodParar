@@ -2,6 +2,7 @@ package com.podparar.core.data
 
 import com.podparar.core.database.PodcastStore
 import com.podparar.core.model.Episode
+import com.podparar.core.model.EpisodeWithPodcast
 import com.podparar.core.model.FeedMerge
 import com.podparar.core.model.LoadError
 import com.podparar.core.model.ParsedFeed
@@ -13,7 +14,9 @@ import com.podparar.core.network.PodcastDirectory
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.yield
 
 internal fun podcast(feedUrl: String, title: String = "Show at $feedUrl") = Podcast(
     feedUrl = feedUrl,
@@ -147,8 +150,85 @@ internal class FakePodcastStore : PodcastStore {
     override suspend fun deletePodcast(feedUrl: String) {
         synchronized(this) {
             deleted += feedUrl
+            val gone = episodes.value[feedUrl].orEmpty().map { it.id }.toSet()
             podcasts.value = podcasts.value - feedUrl
             episodes.value = episodes.value - feedUrl
+            queue.value = queue.value.filterNot { it in gone }
+        }
+    }
+
+    // --- Phase 3: queue and Home lists ---
+
+    private val queue = MutableStateFlow<List<String>>(emptyList())
+
+    /** Every setQueue call's ids, in order. */
+    val setQueueCalls = mutableListOf<List<String>>()
+
+    /** The limits observeInProgress / observeNewEpisodes were asked for. */
+    val inProgressLimits = mutableListOf<Int>()
+    val newEpisodesLimits = mutableListOf<Int>()
+
+    /** Every markAllPlayed call's feed URL. */
+    val markAllPlayedCalls = mutableListOf<String>()
+
+    /** Puts ids in the queue without counting it as a setQueue call. */
+    fun seedQueue(ids: List<String>) {
+        queue.value = ids
+    }
+
+    private fun withPodcast(episode: Episode, shows: Map<String, Podcast>): EpisodeWithPodcast? {
+        val show = shows[episode.podcastUrl] ?: return null
+        return EpisodeWithPodcast(episode, show.title, show.artworkUrl)
+    }
+
+    private fun joined(): Flow<List<EpisodeWithPodcast>> =
+        combine(podcasts, episodes) { shows, eps -> eps.values.flatten().mapNotNull { withPodcast(it, shows) } }
+
+    override fun observeQueue(): Flow<List<EpisodeWithPodcast>> =
+        combine(queue, joined()) { ids, all ->
+            val byId = all.associateBy { it.episode.id }
+            ids.mapNotNull { byId[it] }
+        }
+
+    override suspend fun queueIds(): List<String> {
+        val ids = queue.value
+        // Gives other coroutines a chance to run between a read and the write that follows it,
+        // so a repository that doesn't serialise its read-modify-write loses updates.
+        yield()
+        return ids
+    }
+
+    override suspend fun setQueue(ids: List<String>) {
+        yield()
+        synchronized(this) {
+            setQueueCalls += ids
+            queue.value = ids.toList()
+        }
+    }
+
+    override fun observeInProgress(limit: Int): Flow<List<EpisodeWithPodcast>> {
+        synchronized(this) { inProgressLimits += limit }
+        return joined().map { all ->
+            all.filter { !it.episode.played && it.episode.positionMs > 0 }
+                .sortedByDescending { it.episode.lastPlayedAt }
+                .take(limit)
+        }
+    }
+
+    override fun observeNewEpisodes(limit: Int): Flow<List<EpisodeWithPodcast>> {
+        synchronized(this) { newEpisodesLimits += limit }
+        return joined().map { all ->
+            all.filter { !it.episode.played && it.episode.positionMs == 0L }
+                .sortedByDescending { it.episode.pubDate }
+                .take(limit)
+        }
+    }
+
+    override suspend fun markAllPlayed(feedUrl: String) {
+        synchronized(this) {
+            markAllPlayedCalls += feedUrl
+            val list = episodes.value[feedUrl] ?: return
+            episodes.value = episodes.value + (feedUrl to list.map { it.copy(played = true, positionMs = 0L) })
         }
     }
 }
