@@ -68,22 +68,24 @@ jobs:
 
       # One release per build, tagged v0.<build>, so update apps such as Obtainium see a new
       # version each time. GitHub's fixed link always serves the newest one:
-      # https://github.com/<owner>/<repo>/releases/latest/download/PodParar.apk
+      # https://github.com/<owner>/<repo>/releases/latest/download/PodOuvir.apk
       - name: Publish a release
         if: github.event_name == 'push' && (github.ref_name == 'claude/dazzling-gates-kqo3gf' || github.ref_name == 'main')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cp app/build/outputs/apk/release/app-release.apk PodOuvir.apk
+          # PodParar.apk is kept so builds before the rename still find updates.
           cp app/build/outputs/apk/release/app-release.apk PodParar.apk
-          assets="PodParar.apk"
+          assets="PodOuvir.apk PodParar.apk"
           if ls screenshots/*.png >/dev/null 2>&1; then
             (cd screenshots && zip -q ../screenshots.zip *.png)
             assets="$assets screenshots.zip"
           fi
           gh release create "v0.${GITHUB_RUN_NUMBER}" $assets \
             --target "$GITHUB_SHA" \
-            --title "PodParar 0.${GITHUB_RUN_NUMBER}" \
-            --notes "Build ${GITHUB_RUN_NUMBER} from ${GITHUB_SHA::7}. Install PodParar.apk on Android; it updates over any earlier PodParar build." \
+            --title "PodOuvir 0.${GITHUB_RUN_NUMBER}" \
+            --notes "Build ${GITHUB_RUN_NUMBER} from ${GITHUB_SHA::7}. Install PodOuvir.apk on Android; it updates over any earlier PodOuvir or PodParar build." \
             --latest
           # Keep the three newest releases.
           gh release list --limit 100 --json tagName --jq '.[3:][].tagName' | xargs -r -n1 gh release delete --cleanup-tag --yes

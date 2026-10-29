@@ -18,14 +18,17 @@ data class ImportResult(val added: Int, val alreadySubscribed: Int, val failed: 
 /** Writes and reads OPML subscription lists, so shows move between phones. */
 object Opml {
 
-    /** OPML 2.0, one `<outline type="rss">` per podcast sorted by title (case-insensitive), XML escaped. */
+    /**
+     * OPML 2.0 titled "PodOuvir subscriptions", one `<outline type="rss">` per podcast sorted by
+     * title (case-insensitive), XML escaped.
+     */
     fun write(podcasts: List<Podcast>): String {
         val sorted = podcasts.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title })
         return buildString {
             append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
             append("<opml version=\"2.0\">\n")
             append("  <head>\n")
-            append("    <title>PodParar subscriptions</title>\n")
+            append("    <title>PodOuvir subscriptions</title>\n")
             append("  </head>\n")
             append("  <body>\n")
             for (podcast in sorted) {

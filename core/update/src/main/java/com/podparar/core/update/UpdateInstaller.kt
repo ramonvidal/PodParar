@@ -37,7 +37,7 @@ class UpdateInstaller @Inject constructor(@ApplicationContext private val contex
 
     /** Downloads with progress (0..1), then starts the install. */
     suspend fun downloadAndInstall(update: AppUpdate, onProgress: (Float) -> Unit) = withContext(Dispatchers.IO) {
-        val apk = File(context.cacheDir, "updates/PodParar.apk").apply { parentFile?.mkdirs() }
+        val apk = File(context.cacheDir, "updates/PodOuvir.apk").apply { parentFile?.mkdirs() }
         download(update.downloadUrl, apk, update.sizeBytes, onProgress)
         install(apk)
     }
@@ -87,7 +87,7 @@ class UpdateInstaller @Inject constructor(@ApplicationContext private val contex
     private companion object {
         const val TIMEOUT_MS = 30_000
         const val BUFFER = 64 * 1024
-        const val APK_ENTRY = "PodParar.apk"
+        const val APK_ENTRY = "PodOuvir.apk"
     }
 }
 
@@ -101,7 +101,7 @@ internal class InstallResultReceiver : BroadcastReceiver() {
                     ?.let(context::startActivity)
             }
             PackageInstaller.STATUS_SUCCESS -> Unit
-            else -> Log.w("PodParar", "Update not installed ($status): ${intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)}")
+            else -> Log.w("PodOuvir", "Update not installed ($status): ${intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)}")
         }
     }
 }

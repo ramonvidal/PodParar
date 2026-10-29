@@ -80,7 +80,10 @@ class UpdateRepository @Inject constructor(@ApplicationContext private val conte
             val json = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
             val build = Updates.buildNumber(json.optString("tag_name")) ?: return null
             val assets = json.optJSONArray("assets") ?: return null
-            val apk = (0 until assets.length()).map { assets.getJSONObject(it) }.firstOrNull { it.optString("name") == APK_NAME }
+            val files = (0 until assets.length()).map { assets.getJSONObject(it) }
+            // Releases made before the rename only carry the old name.
+            val apk = files.firstOrNull { it.optString("name") == APK_NAME }
+                ?: files.firstOrNull { it.optString("name") == LEGACY_APK_NAME }
                 ?: return null
             return AppUpdate(build, "0.$build", apk.getString("browser_download_url"), apk.optLong("size"))
         } finally {
@@ -109,7 +112,10 @@ class UpdateRepository @Inject constructor(@ApplicationContext private val conte
     companion object {
         /** Where the builds are published (see .github/workflows/android.yml). */
         const val LATEST_RELEASE_API = "https://api.github.com/repos/ramonvidal/PodParar/releases/latest"
-        const val APK_NAME = "PodParar.apk"
+        const val APK_NAME = "PodOuvir.apk"
+
+        /** The app was called PodParar before; releases from then only have this asset. */
+        const val LEGACY_APK_NAME = "PodParar.apk"
         private const val TIMEOUT_MS = 15_000
         private const val KEY_CHECKED = "checked_at"
         private const val KEY_DISMISSED = "dismissed_build"

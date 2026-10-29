@@ -8,7 +8,7 @@ import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
-internal const val USER_AGENT = "PodParar (Android; https://github.com/ramonvidal/PodParar)"
+internal const val USER_AGENT = "PodOuvir (Android; https://github.com/ramonvidal/PodParar)"
 
 @Module
 @InstallIn(SingletonComponent::class)

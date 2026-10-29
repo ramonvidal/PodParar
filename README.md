@@ -1,24 +1,26 @@
-# PodParar
+# PodOuvir
 
 A clean, easy podcast player for Android: find a show, subscribe, press play, and pick
 up exactly where you left off. No account, no server: everything stays on your phone.
+
+The app was called PodParar before; the GitHub repository keeps that name.
 
 See [PLAN.md](PLAN.md) for the roadmap and design decisions, and [CLAUDE.md](CLAUDE.md)
 for the rules every change follows.
 
 ## Installing on a phone
 
-Download **[PodParar.apk](https://github.com/ramonvidal/PodParar/releases/latest/download/PodParar.apk)**
+Download **[PodOuvir.apk](https://github.com/ramonvidal/PodParar/releases/latest/download/PodOuvir.apk)**
 on the phone and open it (allow installing from unknown sources). That link always
 points at the newest build and needs no GitHub account. Each build installs over the
 previous one.
 
 ### Updates
 
-After that first install, PodParar checks for new builds itself (every few hours, or
+After that first install, PodOuvir checks for new builds itself (every few hours, or
 right away from **Settings → Check for updates**) and offers to install them: tap
 **Install** on the banner at the top of the screen and confirm. The first time, Android
-asks you to allow PodParar to install apps.
+asks you to allow PodOuvir to install apps.
 
 ## Tech stack
 
@@ -28,8 +30,9 @@ the phases that need them land. Minimum Android 8.0 (API 26).
 ## Building
 
 Every push runs the **Android build** workflow: module rules tests, unit and screenshot
-tests, the APKs (artifact `podparar-debug-apk`), and a release with `PodParar.apk` and
-`screenshots.zip`. Locally, open the folder in Android Studio and run `app`.
+tests, the APKs (artifact `podparar-debug-apk`), and a release with `PodOuvir.apk`,
+`PodParar.apk` (for builds from before the rename) and `screenshots.zip`. Locally,
+open the folder in Android Studio and run `app`.
 
 ## Tests
 
