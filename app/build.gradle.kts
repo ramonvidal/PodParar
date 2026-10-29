@@ -17,11 +17,28 @@ android {
         versionName = "0.$buildNumber"
     }
 
+    // Android only installs an update signed with the same key as the installed app, so every
+    // published build must use one fixed key. CI writes it from the SIGNING_KEYSTORE_BASE64
+    // secret (see README); it is never committed. Without it, builds fall back to the machine's
+    // debug key, which is fine locally but must never be published.
+    val podOuvirKeystore = file("podouvir-release.keystore")
+    if (podOuvirKeystore.exists()) {
+        signingConfigs.create("podouvir") {
+            storeFile = podOuvirKeystore
+            storePassword = "podouvir"
+            keyAlias = "podouvir"
+            keyPassword = "podouvir"
+        }
+    }
+    val signing = signingConfigs.findByName("podouvir") ?: signingConfigs.getByName("debug")
+
     buildTypes {
+        debug {
+            // Same key as releases, so either installs over the other without uninstalling.
+            signingConfig = signing
+        }
         release {
-            // Same key as debug builds, so a release installs over a test build (and the
-            // other way round) without uninstalling.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signing
             // Shrinking would make the APK smaller, but can break code that's only found at
             // runtime; worth turning on once there are UI tests on a real device.
             isMinifyEnabled = false

@@ -24,6 +24,19 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # The fixed signing key: without it every build would get a new random key, Android would
+      # refuse to update over the installed app, and reinstalling would wipe people's shows.
+      - name: Add the signing key
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$SIGNING_KEYSTORE_BASE64" ]; then
+            printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 -d > app/podouvir-release.keystore
+            echo "Signing key added"
+          else
+            echo "::warning::SIGNING_KEYSTORE_BASE64 is not set: builds use a throwaway key and no release is published."
+          fi
+
       - name: Module structure rules tests
         run: ./gradlew -p build-logic :rules:test
 
@@ -74,6 +87,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if [ ! -f app/podouvir-release.keystore ]; then
+            echo "::error::Not publishing: the SIGNING_KEYSTORE_BASE64 secret is missing, so this APK couldn't update an installed copy."
+            exit 1
+          fi
           cp app/build/outputs/apk/release/app-release.apk PodOuvir.apk
           # PodParar.apk is kept so builds before the rename still find updates.
           cp app/build/outputs/apk/release/app-release.apk PodParar.apk

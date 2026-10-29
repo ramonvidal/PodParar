@@ -34,6 +34,16 @@ tests, the APKs (artifact `podparar-debug-apk`), and a release with `PodOuvir.ap
 `PodParar.apk` (for builds from before the rename) and `screenshots.zip`. Locally,
 open the folder in Android Studio and run `app`.
 
+### Signing key
+
+Android only installs an update signed with the same key as the installed app, so every
+published build is signed with one fixed key (`podouvir-release.keystore`, alias and
+passwords `podouvir`). It is never committed: CI writes it from the repository secret
+`SIGNING_KEYSTORE_BASE64` (the keystore file, base64-encoded), and refuses to publish a
+release without it. Keep a copy of the keystore somewhere safe: losing it means the next
+build can't update installed copies. To build a signed APK locally, put the keystore in
+`app/` (it's git-ignored).
+
 ## Tests
 
 - App logic: `./gradlew :core:model:test testDebugUnitTest`
