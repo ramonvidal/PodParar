@@ -42,6 +42,10 @@ internal class DataStorePlaybackSettings(
         .map { prefs -> prefs[SHAKE_TO_EXTEND] ?: true }
         .distinctUntilChanged()
 
+    override val nextPreviousSkip: Flow<Boolean> = preferences
+        .map { prefs -> prefs[NEXT_PREVIOUS_SKIP] ?: true }
+        .distinctUntilChanged()
+
     override suspend fun setSpeed(speed: Float) {
         val clamped = PlaybackSpeeds.clamp(speed)
         dataStore.edit { prefs -> prefs[SPEED] = clamped }
@@ -65,11 +69,16 @@ internal class DataStorePlaybackSettings(
         dataStore.edit { prefs -> prefs[SHAKE_TO_EXTEND] = enabled }
     }
 
+    override suspend fun setNextPreviousSkip(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[NEXT_PREVIOUS_SKIP] = enabled }
+    }
+
     private companion object {
         val SPEED = floatPreferencesKey("playback_speed")
         val SKIP_SILENCE = booleanPreferencesKey("skip_silence")
         val SKIP_BACK_MS = longPreferencesKey("skip_back_ms")
         val SKIP_FORWARD_MS = longPreferencesKey("skip_forward_ms")
         val SHAKE_TO_EXTEND = booleanPreferencesKey("shake_to_extend")
+        val NEXT_PREVIOUS_SKIP = booleanPreferencesKey("next_previous_skip")
     }
 }

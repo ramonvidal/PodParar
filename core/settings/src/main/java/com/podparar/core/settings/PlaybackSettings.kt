@@ -19,6 +19,12 @@ interface PlaybackSettings {
     /** Shake the phone to add time to a running sleep timer; true until set. */
     val shakeToExtend: Flow<Boolean>
 
+    /**
+     * Next/previous media buttons (car, Bluetooth, headphones) skip forward/back instead of
+     * changing episode; true until set.
+     */
+    val nextPreviousSkip: Flow<Boolean>
+
     /** Stores PlaybackSpeeds.clamp(speed). */
     suspend fun setSpeed(speed: Float)
 
@@ -31,4 +37,6 @@ interface PlaybackSettings {
     suspend fun setSkipForwardMs(ms: Long)
 
     suspend fun setShakeToExtend(enabled: Boolean)
+
+    suspend fun setNextPreviousSkip(enabled: Boolean)
 }

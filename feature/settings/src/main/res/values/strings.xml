@@ -6,6 +6,8 @@
     <string name="settings_seconds">%d s</string>
     <string name="settings_skip_silence">Skip silence</string>
     <string name="settings_skip_silence_hint">Jump over quiet gaps in episodes</string>
+    <string name="settings_next_previous_skip">Car and headphone buttons skip</string>
+    <string name="settings_next_previous_skip_hint">Next and previous skip forward and back instead of changing episode</string>
     <string name="settings_shake_to_extend">Shake to add 5 minutes</string>
     <string name="settings_shake_to_extend_hint">While a sleep timer runs, shake the phone to keep listening</string>
     <string name="settings_downloads">Downloads</string>

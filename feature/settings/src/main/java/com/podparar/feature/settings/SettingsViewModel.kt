@@ -54,6 +54,7 @@ internal data class StoredSettings(
     val skipForwardMs: Long,
     val skipSilence: Boolean,
     val shakeToExtend: Boolean,
+    val nextPreviousSkip: Boolean,
     val wifiOnly: Boolean,
     val newEpisodeAlerts: Boolean,
 )
@@ -72,9 +73,10 @@ class SettingsViewModel @Inject constructor(
     internal val settings: StateFlow<StoredSettings?> = combine(
         combine(playback.skipBackMs, playback.skipForwardMs, ::Pair),
         combine(playback.skipSilence, playback.shakeToExtend, ::Pair),
+        playback.nextPreviousSkip,
         combine(downloads.wifiOnly, downloads.newEpisodeAlerts, ::Pair),
-    ) { (back, forward), (silence, shake), (wifi, alerts) ->
-        StoredSettings(back, forward, silence, shake, wifi, alerts)
+    ) { (back, forward), (silence, shake), nextPreviousSkip, (wifi, alerts) ->
+        StoredSettings(back, forward, silence, shake, nextPreviousSkip, wifi, alerts)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     internal val opml: StateFlow<OpmlStatus?> = opmlStatus
@@ -111,6 +113,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setShakeToExtend(enabled: Boolean) {
         viewModelScope.launch { playback.setShakeToExtend(enabled) }
+    }
+
+    fun setNextPreviousSkip(enabled: Boolean) {
+        viewModelScope.launch { playback.setNextPreviousSkip(enabled) }
     }
 
     fun setWifiOnly(enabled: Boolean) {

@@ -51,6 +51,8 @@ internal data class SettingsUiState(
     val skipBackMs: Long = SkipLengths.DEFAULT_BACK_MS,
     val skipForwardMs: Long = SkipLengths.DEFAULT_FORWARD_MS,
     val skipSilence: Boolean = false,
+    /** Car, Bluetooth and headphone next/previous buttons skip forward/back instead of changing episode. */
+    val nextPreviousSkip: Boolean = true,
     val shakeToExtend: Boolean = true,
     val wifiOnly: Boolean = true,
     val newEpisodeAlerts: Boolean = true,
@@ -108,6 +110,7 @@ internal fun SettingsScreen(
                 skipBackMs = stored.skipBackMs,
                 skipForwardMs = stored.skipForwardMs,
                 skipSilence = stored.skipSilence,
+                nextPreviousSkip = stored.nextPreviousSkip,
                 shakeToExtend = stored.shakeToExtend,
                 wifiOnly = stored.wifiOnly,
                 newEpisodeAlerts = stored.newEpisodeAlerts,
@@ -127,6 +130,7 @@ internal fun SettingsScreen(
         onImportOpml = { importLauncher.launch(OPML_MIME_TYPES) },
         onExportOpml = { exportLauncher.launch(EXPORT_FILE_NAME) },
         onCheckForUpdates = viewModel::checkForUpdates,
+        onNextPreviousSkipChange = viewModel::setNextPreviousSkip,
     )
 }
 
@@ -180,6 +184,7 @@ internal fun SettingsContent(
     onExportOpml: () -> Unit,
     modifier: Modifier = Modifier,
     onCheckForUpdates: () -> Unit = {},
+    onNextPreviousSkipChange: (Boolean) -> Unit = {},
 ) {
     Column(modifier.fillMaxSize()) {
         TopAppBar(
@@ -221,6 +226,13 @@ internal fun SettingsContent(
                     hint = stringResource(R.string.settings_skip_silence_hint),
                     checked = state.skipSilence,
                     onChange = onSkipSilenceChange,
+                )
+                RowDivider()
+                SwitchRow(
+                    title = stringResource(R.string.settings_next_previous_skip),
+                    hint = stringResource(R.string.settings_next_previous_skip_hint),
+                    checked = state.nextPreviousSkip,
+                    onChange = onNextPreviousSkipChange,
                 )
             }
             Group(stringResource(CoreUiR.string.sleep_timer)) {
