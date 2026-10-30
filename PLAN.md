@@ -102,7 +102,10 @@ build-logic/
       per-show speed, skip silence, Settings screen, OPML import/export.
 - [x] **Phase 6: Updates from inside the app.** Port ChoreMe's `:core:update` and
       `:feature:update`; README with the fixed "latest APK" link.
-- [ ] **Extras (later).** Chapters, Android Auto, a home-screen widget, episode search
+- [x] **Car.** Next/previous buttons (steering wheel, Bluetooth screen, headphones) skip
+      forward/back, switchable in Settings; Android Auto media app with Continue listening,
+      Up next, New episodes and Your shows.
+- [ ] **Extras (later).** Chapters, a home-screen widget, episode search
       inside a show.
 
 ## Settled questions
