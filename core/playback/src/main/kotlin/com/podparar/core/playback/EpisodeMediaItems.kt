@@ -33,6 +33,9 @@ internal object EpisodeMediaItems {
             .setTitle(episode.title)
             .setArtist(podcast?.title)
             .setArtworkUri(artwork?.let(Uri::parse))
+            .setIsPlayable(true)
+            .setIsBrowsable(false)
+            .setMediaType(MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE)
             .setExtras(extras)
             .build()
         return MediaItem.Builder()
@@ -44,6 +47,13 @@ internal object EpisodeMediaItems {
             .setMediaMetadata(metadata)
             .build()
     }
+
+    /**
+     * Whether [item] says where its audio is (an item the app's own controller sent). The car
+     * sends only an episode id; those are looked up in the database instead.
+     */
+    fun hasAudioUri(item: MediaItem): Boolean =
+        item.localConfiguration != null || item.requestMetadata.mediaUri != null
 
     /** Rebuilds an item that arrived from a controller so the player can load it. */
     fun resolve(item: MediaItem): MediaItem {
