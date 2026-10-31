@@ -64,11 +64,11 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
 internal data class HomeUiState(
-    /** Started, not finished, most recently played first. */
+    /** Started, not finished, most recently played first; none that are in [upNext]. */
     val continueListening: List<EpisodeWithPodcast> = emptyList(),
     /** The queue, in order; never includes the episode playing. */
     val upNext: List<EpisodeWithPodcast> = emptyList(),
-    /** Unplayed, unstarted episodes from every show, newest first. */
+    /** Unplayed, unstarted episodes from every show, newest first; none that are in [upNext]. */
     val newEpisodes: List<EpisodeWithPodcast> = emptyList(),
     val hasSubscriptions: Boolean = true,
     val isLoading: Boolean = true,

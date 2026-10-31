@@ -7,6 +7,7 @@ import com.podparar.core.data.PodcastRepository
 import com.podparar.core.data.QueueRepository
 import com.podparar.core.downloads.EpisodeDownloads
 import com.podparar.core.model.Episode
+import com.podparar.core.model.HomeLists
 import com.podparar.core.playback.PlayerController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -43,10 +44,11 @@ class HomeViewModel @Inject constructor(
                 .map { PlayingState(it?.episodeId, it?.isPlaying == true) }
                 .distinctUntilChanged(),
         ) { continueListening, upNext, newEpisodes, hasSubscriptions, playing ->
+            // An episode in Up next shows only there; it returns to its section when it leaves.
             HomeUiState(
-                continueListening = continueListening,
+                continueListening = HomeLists.withoutQueued(continueListening, upNext),
                 upNext = upNext,
-                newEpisodes = newEpisodes,
+                newEpisodes = HomeLists.withoutQueued(newEpisodes, upNext),
                 hasSubscriptions = hasSubscriptions,
                 isLoading = false,
                 nowPlayingId = playing.episodeId,
