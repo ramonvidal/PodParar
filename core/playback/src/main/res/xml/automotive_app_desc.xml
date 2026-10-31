@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Declares PodOuvir as an Android Auto media app (see the meta-data in this module's manifest). -->
+<!-- Declares Escutaê as an Android Auto media app (see the meta-data in this module's manifest). -->
 <automotiveApp>
     <uses name="media" />
 </automotiveApp>

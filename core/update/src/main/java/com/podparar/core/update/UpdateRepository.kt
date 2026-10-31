@@ -112,10 +112,10 @@ class UpdateRepository @Inject constructor(@ApplicationContext private val conte
     companion object {
         /** Where the builds are published (see .github/workflows/android.yml). */
         const val LATEST_RELEASE_API = "https://api.github.com/repos/ramonvidal/PodParar/releases/latest"
-        const val APK_NAME = "PodOuvir.apk"
+        const val APK_NAME = "Escutae.apk"
 
-        /** The app was called PodParar before; releases from then only have this asset. */
-        const val LEGACY_APK_NAME = "PodParar.apk"
+        /** The app was called PodOuvir before; releases from then only have this asset. */
+        const val LEGACY_APK_NAME = "PodOuvir.apk"
         private const val TIMEOUT_MS = 15_000
         private const val KEY_CHECKED = "checked_at"
         private const val KEY_DISMISSED = "dismissed_build"

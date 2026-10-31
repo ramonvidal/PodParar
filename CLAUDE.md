@@ -1,11 +1,12 @@
-# PodOuvir: project contract
+# Escutaê: project contract
 
 Rules every change must follow. Product decisions and the roadmap live in `PLAN.md`;
 setup and build instructions in `README.md`. Modelled on ChoreMe's contract.
 
-The app was renamed from PodParar to PodOuvir; internal identifiers (applicationId
+The app was renamed PodParar -> PodOuvir -> Escutaê; internal identifiers (applicationId
 `com.podparar`, packages `com.podparar.*`, `podparar.*` plugins, `podparar.db`, the repo name)
-intentionally keep the old name so installed copies keep updating and keep their data.
+and the `podouvir-release.keystore` signing key intentionally keep their old names so
+installed copies keep updating and keep their data.
 
 ## 1. Modular structure
 

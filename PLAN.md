@@ -1,4 +1,4 @@
-# PodOuvir plan
+# Escutaê plan
 
 A podcast player for Android: **clean, easy, functional**. Find a show, subscribe,
 press play, and pick up exactly where you left off.
@@ -74,7 +74,7 @@ feature/
   discover/         Search, add by RSS link, OPML import
   player/           Full player and the mini player
   settings/         The Settings screen
-  update/           "PodOuvir 0.12 is available – Install" banner
+  update/           "Escutaê 0.12 is available – Install" banner
 build-logic/
   convention/       Shared Gradle setup for each kind of module
   rules/            The module structure check

@@ -27,7 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.podparar.core.model.AppUpdate
 
 /**
- * "PodOuvir 0.25 is available – Install". Takes no room when there's nothing to offer.
+ * "Escutaê 0.25 is available – Install". Takes no room when there's nothing to offer.
  * This feature's only public entry point; `:app` shows it at the top of the screen.
  */
 @Composable

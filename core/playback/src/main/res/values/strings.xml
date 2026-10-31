@@ -5,7 +5,7 @@
     <string name="playback_skip_forward">Forward %1$d seconds</string>
 
     <!-- Android Auto: the app's entry in the car and the folders it opens onto. -->
-    <string name="playback_car_root">PodOuvir</string>
+    <string name="playback_car_root">Escutaê</string>
     <string name="playback_car_continue">Continue listening</string>
     <string name="playback_car_up_next">Up next</string>
     <string name="playback_car_new">New episodes</string>

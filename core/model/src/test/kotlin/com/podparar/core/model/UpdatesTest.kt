@@ -12,7 +12,7 @@ class UpdatesTest {
     private val update = AppUpdate(
         buildNumber = 25,
         versionName = "0.25",
-        downloadUrl = "https://github.com/ramonvidal/PodParar/releases/download/v0.25/PodParar.apk",
+        downloadUrl = "https://github.com/ramonvidal/PodParar/releases/download/v0.25/Escutae.apk",
         sizeBytes = 12_345_678L,
     )
     private val now = Instant.parse("2026-10-28T10:00:00Z")

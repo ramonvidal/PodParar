@@ -49,7 +49,7 @@ class OpmlTest {
         assertTrue(xml, xml.trimStart().startsWith("<?xml"))
         assertTrue(xml, xml.substringBefore("?>").contains("utf-8", ignoreCase = true))
         assertTrue(xml, xml.contains("<opml version=\"2.0\">"))
-        assertTrue(xml, xml.contains("<title>PodOuvir subscriptions</title>"))
+        assertTrue(xml, xml.contains("<title>Escutaê subscriptions</title>"))
 
         val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(InputSource(StringReader(xml)))
         assertEquals("opml", doc.documentElement.tagName)

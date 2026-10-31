@@ -19,7 +19,7 @@ data class ImportResult(val added: Int, val alreadySubscribed: Int, val failed: 
 object Opml {
 
     /**
-     * OPML 2.0 titled "PodOuvir subscriptions", one `<outline type="rss">` per podcast sorted by
+     * OPML 2.0 titled "Escutaê subscriptions", one `<outline type="rss">` per podcast sorted by
      * title (case-insensitive), XML escaped.
      */
     fun write(podcasts: List<Podcast>): String {
@@ -28,7 +28,7 @@ object Opml {
             append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
             append("<opml version=\"2.0\">\n")
             append("  <head>\n")
-            append("    <title>PodOuvir subscriptions</title>\n")
+            append("    <title>Escutaê subscriptions</title>\n")
             append("  </head>\n")
             append("  <body>\n")
             for (podcast in sorted) {
