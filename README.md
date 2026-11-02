@@ -85,3 +85,7 @@ build-logic/
 App controls use Google's [Material Symbols](https://fonts.google.com/icons) (Apache 2.0);
 the font is [Figtree](https://fonts.google.com/specimen/Figtree) (SIL Open Font License).
 Their licenses ship with the app in `core/ui/src/main/assets/licenses`.
+
+The app icon is the Escutaê artwork (`app/src/main/res/mipmap-*/ic_launcher_foreground.png`,
+on a matching yellow background, sized so the name stays whole under any launcher shape);
+`store/play-icon-512.png` is the same artwork for the Play Console.
