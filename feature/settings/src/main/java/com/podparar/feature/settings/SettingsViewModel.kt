@@ -81,11 +81,15 @@ class SettingsViewModel @Inject constructor(
 
     internal val opml: StateFlow<OpmlStatus?> = opmlStatus
 
+    /** Only builds that update themselves from the release page offer "Check for updates". */
+    internal val showUpdateCheck: Boolean = updates.selfUpdateEnabled
+
     private val _updateCheck = MutableStateFlow<UpdateCheck>(UpdateCheck.Idle)
     internal val updateCheck: StateFlow<UpdateCheck> = _updateCheck
 
     /** Asks the release page right away; a version put off with "Later" is offered again. */
     fun checkForUpdates() {
+        if (!showUpdateCheck) return
         if (_updateCheck.value == UpdateCheck.Checking) return
         _updateCheck.value = UpdateCheck.Checking
         viewModelScope.launch {

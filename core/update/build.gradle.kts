@@ -6,10 +6,16 @@ plugins {
 
 android {
     namespace = "com.podparar.core.update"
+    // Robolectric tests need the merged resources.
+    testOptions.unitTests.isIncludeAndroidResources = true
 }
 
 dependencies {
     api(projects.core.model)
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
+
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

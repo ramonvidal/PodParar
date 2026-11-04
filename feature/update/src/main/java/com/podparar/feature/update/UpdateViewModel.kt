@@ -31,6 +31,11 @@ class UpdateViewModel @Inject constructor(
     val state: StateFlow<UpdateState> = _state
 
     init {
+        // A store-updated build never offers anything, so the banner stays hidden.
+        if (updates.selfUpdateEnabled) collectAvailable()
+    }
+
+    private fun collectAvailable() {
         viewModelScope.launch {
             updates.available.collect { update ->
                 // A download or a trip to Settings in progress carries on.
@@ -63,6 +68,7 @@ class UpdateViewModel @Inject constructor(
 
     /** Each time the app is shown: checks when one is due, and carries on after "allow installs". */
     fun onResume() {
+        if (!updates.selfUpdateEnabled) return
         viewModelScope.launch { updates.refresh() }
         val waiting = _state.value as? UpdateState.NeedsPermission ?: return
         if (installer.canInstall()) install(waiting.update)

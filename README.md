@@ -15,12 +15,38 @@ on the phone and open it (allow installing from unknown sources). That link alwa
 points at the newest build and needs no GitHub account. Each build installs over the
 previous one.
 
+The app ID changed from `com.podparar` to `com.punyplatypus.escutae` for Google Play, so
+a copy installed before that change is a separate app and won't update to the new one.
+To move your shows, use **Settings → Export to OPML** in the old app and
+**Settings → Import from OPML** in the new one, then uninstall the old app.
+
 ### Updates
 
 After that first install, Escutaê checks for new builds itself (every few hours, or
 right away from **Settings → Check for updates**) and offers to install them: tap
 **Install** on the banner at the top of the screen and confirm. The first time, Android
 asks you to allow Escutaê to install apps.
+
+## Google Play
+
+The same code is published two ways, as the `distribution` product flavor:
+
+- **github**: the APK on the GitHub release page (`Escutae.apk`), with the in-app
+  self-updater described above.
+- **play**: the Android App Bundle for Google Play (internal testing for now). Play
+  installs its updates, so this build has no self-updater, no "Check for updates" row in
+  Settings, and no `REQUEST_INSTALL_PACKAGES` permission (Play restricts it).
+
+CI builds both (`assembleGithubRelease`, `bundlePlayRelease`); the signed bundle is the
+`escutae-play-aab` artifact. Both are signed with the same key (below); for Play it is
+the upload key, and Play App Signing holds the key Play signs the app with.
+
+To have CI upload each build to the internal testing track, add the repository secret
+`PLAY_SERVICE_ACCOUNT_JSON`: the JSON key of a Google Cloud service account that has
+release access to the app in the Play Console. Google requires the **first** bundle of
+a new app to be uploaded by hand in the Play Console (download `escutae-play-aab` from a
+CI run); after that, CI uploads every build it publishes as a release. Without the
+secret the upload step is skipped.
 
 ## Tech stack
 
@@ -30,9 +56,11 @@ the phases that need them land. Minimum Android 8.0 (API 26).
 ## Building
 
 Every push runs the **Android build** workflow: module rules tests, unit and screenshot
-tests, the APKs (artifact `podparar-debug-apk`), and a release with `Escutae.apk`,
+tests, the APKs (artifact `podparar-debug-apk`), the Play bundle (artifact
+`escutae-play-aab`), and a release with `Escutae.apk`,
 `PodOuvir.apk` (for builds from before the rename) and `screenshots.zip`. Locally,
-open the folder in Android Studio and run `app`.
+open the folder in Android Studio and run `app` (pick the `githubDebug` or `playDebug`
+build variant).
 
 ### Signing key
 
@@ -46,7 +74,8 @@ build can't update installed copies. To build a signed APK locally, put the keys
 
 ## Tests
 
-- App logic: `./gradlew :core:model:test testDebugUnitTest`
+- App logic: `./gradlew :core:model:test testDebugUnitTest` (every module's tests; `:app`
+  has flavors, so its own task would be `testGithubDebugUnitTest`)
 - Module structure rules: `./gradlew -p build-logic :rules:test`
 
 The UI tests also save screenshots of each tab (light, dark, largest text) to

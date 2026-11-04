@@ -16,9 +16,9 @@ internal val Project.libs: VersionCatalog
 
 internal fun VersionCatalog.library(alias: String): MinimalExternalModuleDependency = findLibrary(alias).get().get()
 
-internal const val COMPILE_SDK = 35
+internal const val COMPILE_SDK = 36
 internal const val MIN_SDK = 26
-internal const val TARGET_SDK = 35
+internal const val TARGET_SDK = 36
 
 @Suppress("UnstableApiUsage")
 internal fun Project.configureKotlinAndroid(android: CommonExtension<*, *, *, *, *, *>) {

@@ -14,6 +14,9 @@ jobs:
     permissions:
       # Publishing the APK as a release.
       contents: write
+    env:
+      # Secrets can't be read in a step's `if`, so whether Google Play upload is set up is exposed here.
+      PLAY_CONFIGURED: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +44,8 @@ jobs:
         run: ./gradlew -p build-logic :rules:test
 
       # Every Gradle invocation also checks the module structure (podparar.module-rules).
+      # testDebugUnitTest runs in every module that has it: all the libraries and features. :app
+      # has flavors, so its tasks are testGithubDebugUnitTest and testPlayDebugUnitTest (it has no tests).
       - name: Unit tests
         run: ./gradlew :core:model:test testDebugUnitTest
 
@@ -71,13 +76,32 @@ jobs:
           name: screenshots
           path: screenshots/
 
-      - name: Build APKs
-        run: ./gradlew assembleDebug assembleRelease
+      # Two distributions (CLAUDE.md/README): the github APKs, with the self-updater, and the
+      # play bundle for Google Play, without it.
+      - name: Build APKs and the Play bundle
+        run: ./gradlew assembleGithubDebug assembleGithubRelease bundlePlayRelease
 
       - uses: actions/upload-artifact@v4
         with:
           name: podparar-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/github/debug/*.apk
+
+      # Only a bundle signed with the real key is worth keeping: Play rejects any other upload key.
+      - name: Check the Play bundle is signed
+        id: play_bundle
+        run: |
+          if [ -f app/podouvir-release.keystore ]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Not uploading the Play bundle: the SIGNING_KEYSTORE_BASE64 secret is missing, so it isn't signed with the upload key."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: steps.play_bundle.outputs.signed == 'true'
+        with:
+          name: escutae-play-aab
+          path: app/build/outputs/bundle/playRelease/*.aab
 
       # One release per build, tagged v0.<build>, so update apps such as Obtainium see a new
       # version each time. GitHub's fixed link always serves the newest one:
@@ -91,9 +115,9 @@ jobs:
             echo "::error::Not publishing: the SIGNING_KEYSTORE_BASE64 secret is missing, so this APK couldn't update an installed copy."
             exit 1
           fi
-          cp app/build/outputs/apk/release/app-release.apk Escutae.apk
+          cp app/build/outputs/apk/github/release/app-github-release.apk Escutae.apk
           # PodOuvir.apk is kept so builds from before this rename still find updates.
-          cp app/build/outputs/apk/release/app-release.apk PodOuvir.apk
+          cp app/build/outputs/apk/github/release/app-github-release.apk PodOuvir.apk
           assets="Escutae.apk PodOuvir.apk"
           if ls screenshots/*.png >/dev/null 2>&1; then
             (cd screenshots && zip -q ../screenshots.zip *.png)
@@ -106,3 +130,16 @@ jobs:
             --latest
           # Keep the three newest releases.
           gh release list --limit 100 --json tagName --jq '.[3:][].tagName' | xargs -r -n1 gh release delete --cleanup-tag --yes
+
+      # The Play bundle goes to the internal testing track, once a service account is set up
+      # (PLAY_SERVICE_ACCOUNT_JSON, see README). Google requires the very first bundle of a new app
+      # to be uploaded by hand in the Play Console; after that, CI uploads every build.
+      - name: Upload to Google Play (internal testing)
+        if: env.PLAY_CONFIGURED == 'true' && github.event_name == 'push' && (github.ref_name == 'claude/dazzling-gates-kqo3gf' || github.ref_name == 'main')
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.punyplatypus.escutae
+          releaseFiles: app/build/outputs/bundle/playRelease/*.aab
+          track: internal
+          status: completed

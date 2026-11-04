@@ -18,9 +18,21 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Asks the release page for the newest build. Free and anonymous: no account or key involved. */
+/** Whether this build updates itself from the GitHub release page. :app provides it per distribution. */
+data class UpdateChannel(val selfUpdate: Boolean)
+
+/**
+ * Asks the release page for the newest build. Free and anonymous: no account or key involved.
+ * Does nothing in a build whose [UpdateChannel] has no self-update (the Play Store updates those).
+ */
 @Singleton
-class UpdateRepository @Inject constructor(@ApplicationContext private val context: Context) {
+class UpdateRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    channel: UpdateChannel,
+) {
+    /** False in builds updated by the store: no checks, no offers, no "Check for updates". */
+    val selfUpdateEnabled: Boolean = channel.selfUpdate
+
     private val prefs = context.getSharedPreferences("updates", Context.MODE_PRIVATE)
 
     private val _available = MutableStateFlow<AppUpdate?>(null)
@@ -40,6 +52,7 @@ class UpdateRepository @Inject constructor(@ApplicationContext private val conte
 
     /** Checks when one is due (see [Updates.CHECK_EVERY]); a network problem just keeps what's known. */
     suspend fun refresh() {
+        if (!selfUpdateEnabled) return
         val now = Instant.now()
         if (Updates.isCheckDue(lastCheck(), now)) runCatching { fetchAndRemember(now) }
         publish(cachedUpdate())
@@ -47,9 +60,10 @@ class UpdateRepository @Inject constructor(@ApplicationContext private val conte
 
     /**
      * "Check for updates": asks right away, and also offers a version put off with "Later".
-     * Throws when the release page can't be reached.
+     * Throws when the release page can't be reached. Returns null without asking when [selfUpdateEnabled] is false.
      */
     suspend fun checkNow(): AppUpdate? {
+        if (!selfUpdateEnabled) return null
         prefs.edit().remove(KEY_DISMISSED).apply()
         fetchAndRemember(Instant.now())
         publish(cachedUpdate())

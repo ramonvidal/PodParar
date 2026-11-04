@@ -61,6 +61,8 @@ internal data class SettingsUiState(
     val opmlBusy: Boolean = false,
     val appVersion: String = "",
     val updateCheck: UpdateCheck = UpdateCheck.Idle,
+    /** False in builds the store updates: the About card has no "Check for updates" row. */
+    val showUpdateCheck: Boolean = true,
 )
 
 private const val EXPORT_FILE_NAME = "podparar-subscriptions.opml"
@@ -102,6 +104,7 @@ internal fun SettingsScreen(
         opmlBusy = opml?.isBusy == true,
         appVersion = appVersion,
         updateCheck = updateCheck,
+        showUpdateCheck = viewModel.showUpdateCheck,
     ).let { base ->
         if (stored == null) {
             base
@@ -306,8 +309,10 @@ internal fun SettingsContent(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
-                RowDivider()
-                UpdateCheckRow(state.updateCheck, onCheckForUpdates)
+                if (state.showUpdateCheck) {
+                    RowDivider()
+                    UpdateCheckRow(state.updateCheck, onCheckForUpdates)
+                }
             }
         }
     }

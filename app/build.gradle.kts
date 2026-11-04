@@ -12,15 +12,28 @@ android {
     val buildNumber = providers.environmentVariable("GITHUB_RUN_NUMBER").map(String::toInt).getOrElse(1)
 
     defaultConfig {
-        applicationId = "com.podparar"
+        // Changed from com.podparar for Google Play; installs from before that are a separate app.
+        applicationId = "com.punyplatypus.escutae"
         versionCode = buildNumber
         versionName = "0.$buildNumber"
+    }
+
+    // The same app, published two ways. Each provides UpdateChannel (DistributionModule.kt in its
+    // source set); play's manifest also drops what only the self-updater needs.
+    flavorDimensions += "distribution"
+    productFlavors {
+        // The APK on the GitHub release page, which updates itself from there.
+        create("github") { dimension = "distribution" }
+        // The bundle for Google Play: Play does the updating, and doesn't allow
+        // REQUEST_INSTALL_PACKAGES for a podcast player.
+        create("play") { dimension = "distribution" }
     }
 
     // Android only installs an update signed with the same key as the installed app, so every
     // published build must use one fixed key. CI writes it from the SIGNING_KEYSTORE_BASE64
     // secret (see README); it is never committed. Without it, builds fall back to the machine's
-    // debug key, which is fine locally but must never be published.
+    // debug key, which is fine locally but must never be published. Both distributions use it:
+    // for Google Play it is the upload key (Play App Signing holds the key Play signs with).
     val podOuvirKeystore = file("podouvir-release.keystore")
     if (podOuvirKeystore.exists()) {
         signingConfigs.create("podouvir") {
@@ -53,6 +66,8 @@ dependencies {
     // Schedules the background refresh and gives WorkManager Hilt's worker factory.
     implementation(projects.core.data)
     implementation(projects.core.downloads)
+    // UpdateChannel, provided per distribution.
+    implementation(projects.core.update)
     implementation(projects.feature.home)
     implementation(projects.feature.library)
     implementation(projects.feature.discover)
