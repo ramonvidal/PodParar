@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -54,8 +52,9 @@ import java.time.ZoneId
  * A long press opens a small menu listing, in this order and only for the callbacks that are
  * set, "Play next" ([onPlayNext]), "Add to queue" ([onAddToQueue]) and "Mark as played" or
  * "Mark as unplayed" ([onTogglePlayed]), then "Download" ([onDownload], when there is no
- * [download] or it failed) or "Remove download" ([onRemoveDownload], otherwise). With none of
- * them applying there is no menu.
+ * [download] or it failed) or "Remove download" ([onRemoveDownload], otherwise), and last
+ * "Go to show" ([onOpenPodcast]); see [EpisodeActionsMenu]. With none of them applying there
+ * is no menu.
  *
  * When [download] is set the bottom line also says where it stands: "Downloaded", a small
  * circle filling up with "Downloading" (spinning while the size is unknown), or "Download
@@ -78,6 +77,7 @@ fun EpisodeRow(
     download: Download? = null,
     onDownload: (() -> Unit)? = null,
     onRemoveDownload: (() -> Unit)? = null,
+    onOpenPodcast: (() -> Unit)? = null,
 ) {
     val dateLabel = remember(episode.pubDate, now) {
         Formats.pubDateLabel(episode.pubDate, now, ZoneId.systemDefault())
@@ -92,25 +92,19 @@ fun EpisodeRow(
     val state = episode.state
     val grey = MaterialTheme.colorScheme.onSurfaceVariant
     var menuOpen by remember { mutableStateOf(false) }
-    val markLabel = stringResource(if (episode.played) R.string.mark_unplayed else R.string.mark_played)
     val showsPause = isCurrent && isPlaying
-    val playNextLabel = stringResource(R.string.play_next)
-    val addToQueueLabel = stringResource(R.string.add_to_queue)
-    val downloadLabel = stringResource(R.string.download)
-    val removeDownloadLabel = stringResource(R.string.remove_download)
-    val canDownload = download == null || download.state == DownloadState.FAILED
-    val downloadAction = if (canDownload) onDownload else null
-    val removeDownloadAction = if (!canDownload) onRemoveDownload else null
-    val hasMenu = onPlayNext != null || onAddToQueue != null || onTogglePlayed != null ||
-        downloadAction != null || removeDownloadAction != null
-    val menuLabel = when {
-        onPlayNext != null -> playNextLabel
-        onAddToQueue != null -> addToQueueLabel
-        onTogglePlayed != null -> markLabel
-        downloadAction != null -> downloadLabel
-        removeDownloadAction != null -> removeDownloadLabel
-        else -> null
-    }
+    val menuLabelRes = firstEpisodeActionLabel(
+        played = episode.played,
+        download = download,
+        onPlayNext = onPlayNext,
+        onAddToQueue = onAddToQueue,
+        onRemoveFromQueue = null,
+        onTogglePlayed = onTogglePlayed,
+        onDownload = onDownload,
+        onRemoveDownload = onRemoveDownload,
+        onOpenPodcast = onOpenPodcast,
+    )
+    val menuLabel = menuLabelRes?.let { stringResource(it) }
 
     Card(modifier = modifier.fillMaxWidth()) {
         Box {
@@ -119,7 +113,7 @@ fun EpisodeRow(
                     .fillMaxWidth()
                     .combinedClickable(
                         onClick = onClick,
-                        onLongClick = if (hasMenu) ({ menuOpen = true }) else null,
+                        onLongClick = if (menuLabel != null) ({ menuOpen = true }) else null,
                         onLongClickLabel = menuLabel,
                     )
                     .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
@@ -214,74 +208,19 @@ fun EpisodeRow(
                     )
                 }
             }
-            if (hasMenu) {
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    if (onPlayNext != null) {
-                        DropdownMenuItem(
-                            text = { Text(playNextLabel) },
-                            onClick = {
-                                menuOpen = false
-                                onPlayNext()
-                            },
-                            leadingIcon = {
-                                Icon(painter = painterResource(R.drawable.ic_queue_play_next), contentDescription = null)
-                            },
-                        )
-                    }
-                    if (onAddToQueue != null) {
-                        DropdownMenuItem(
-                            text = { Text(addToQueueLabel) },
-                            onClick = {
-                                menuOpen = false
-                                onAddToQueue()
-                            },
-                            leadingIcon = {
-                                Icon(painter = painterResource(R.drawable.ic_playlist_add), contentDescription = null)
-                            },
-                        )
-                    }
-                    if (onTogglePlayed != null) {
-                        DropdownMenuItem(
-                            text = { Text(markLabel) },
-                            onClick = {
-                                menuOpen = false
-                                onTogglePlayed()
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    painter = painterResource(
-                                        if (episode.played) R.drawable.ic_remove_done else R.drawable.ic_done_all,
-                                    ),
-                                    contentDescription = null,
-                                )
-                            },
-                        )
-                    }
-                    if (downloadAction != null) {
-                        DropdownMenuItem(
-                            text = { Text(downloadLabel) },
-                            onClick = {
-                                menuOpen = false
-                                downloadAction()
-                            },
-                            leadingIcon = {
-                                Icon(painter = painterResource(R.drawable.ic_download), contentDescription = null)
-                            },
-                        )
-                    }
-                    if (removeDownloadAction != null) {
-                        DropdownMenuItem(
-                            text = { Text(removeDownloadLabel) },
-                            onClick = {
-                                menuOpen = false
-                                removeDownloadAction()
-                            },
-                            leadingIcon = {
-                                Icon(painter = painterResource(R.drawable.ic_delete), contentDescription = null)
-                            },
-                        )
-                    }
-                }
+            if (menuLabel != null) {
+                EpisodeActionsMenu(
+                    expanded = menuOpen,
+                    onDismiss = { menuOpen = false },
+                    played = episode.played,
+                    download = download,
+                    onPlayNext = onPlayNext,
+                    onAddToQueue = onAddToQueue,
+                    onTogglePlayed = onTogglePlayed,
+                    onDownload = onDownload,
+                    onRemoveDownload = onRemoveDownload,
+                    onOpenPodcast = onOpenPodcast,
+                )
             }
         }
     }

@@ -1,7 +1,6 @@
 package com.podparar.feature.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,6 +57,7 @@ import com.podparar.core.model.EpisodeWithPodcast
 import com.podparar.core.model.PlaybackRules
 import com.podparar.core.ui.Artwork
 import com.podparar.core.ui.EmptyState
+import com.podparar.core.ui.EpisodeActionsMenu
 import com.podparar.core.ui.EpisodeRow
 import com.podparar.core.ui.R as CoreUiR
 import sh.calvin.reorderable.ReorderableItem
@@ -106,9 +106,9 @@ internal fun HomeScreen(
 /**
  * Home, drawn from its state alone so screenshot tests can render it.
  * [onMoveInQueue] gets indices within Up next (0 = its first item), once per drag, on drop.
- * Long-pressing a Continue listening card, or tapping a queued episode's show name, calls
- * [onOpenPodcast] with that show's feed URL. Long-pressing a new episode also offers
- * [onDownload] or [onRemoveDownload].
+ * A short tap on any episode calls [onPlay]. Long-pressing one opens its menu: Play next, Add to
+ * queue (Remove from Up next for queued episodes), Mark as played/unplayed, Download or Remove
+ * download, and Go to show, which calls [onOpenPodcast] with that show's feed URL.
  */
 @Composable
 internal fun HomeContent(
@@ -211,10 +211,17 @@ private fun HomeList(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(state.continueListening, key = { it.episode.id }) { item ->
+                        val episode = item.episode
                         ContinueCard(
                             item = item,
-                            onClick = { onPlay(item.episode) },
-                            onLongClick = { onOpenPodcast(item.episode.podcastUrl) },
+                            download = state.downloads[episode.id],
+                            onClick = { onPlay(episode) },
+                            onPlayNext = { onPlayNext(episode) },
+                            onAddToQueue = { onAddToQueue(episode) },
+                            onTogglePlayed = { onTogglePlayed(episode) },
+                            onDownload = { onDownload(episode) },
+                            onRemoveDownload = { onRemoveDownload(episode) },
+                            onOpenPodcast = { onOpenPodcast(episode.podcastUrl) },
                         )
                     }
                 }
@@ -233,7 +240,12 @@ private fun HomeList(
                     UpNextRow(
                         item = item,
                         isDragging = isDragging,
+                        download = state.downloads[item.episode.id],
                         onClick = { onPlay(item.episode) },
+                        onPlayNext = { onPlayNext(item.episode) },
+                        onTogglePlayed = { onTogglePlayed(item.episode) },
+                        onDownload = { onDownload(item.episode) },
+                        onRemoveDownload = { onRemoveDownload(item.episode) },
                         onOpenPodcast = { onOpenPodcast(item.episode.podcastUrl) },
                         onRemove = { onRemoveFromQueue(item.episode) },
                         onMoveUp = if (index > 0) ({ onMoveInQueue(index, index - 1) }) else null,
@@ -291,6 +303,7 @@ private fun HomeList(
                     download = state.downloads[episode.id],
                     onDownload = { onDownload(episode) },
                     onRemoveDownload = { onRemoveDownload(episode) },
+                    onOpenPodcast = { onOpenPodcast(episode.podcastUrl) },
                 )
             }
         }
@@ -318,59 +331,97 @@ private fun SectionHeader(title: String, detail: String? = null) {
     }
 }
 
-/** A 140 dp card: artwork, title, how far along it is and the minutes left. */
+/**
+ * A 140 dp card: artwork, title, how far along it is and the minutes left. A tap plays it;
+ * a long press opens the episode menu, anchored to the card.
+ */
 @Composable
-private fun ContinueCard(item: EpisodeWithPodcast, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun ContinueCard(
+    item: EpisodeWithPodcast,
+    download: Download?,
+    onClick: () -> Unit,
+    onPlayNext: () -> Unit,
+    onAddToQueue: () -> Unit,
+    onTogglePlayed: () -> Unit,
+    onDownload: () -> Unit,
+    onRemoveDownload: () -> Unit,
+    onOpenPodcast: () -> Unit,
+) {
     val episode = item.episode
     val remainingMs = (episode.durationMs - episode.positionMs).coerceAtLeast(0L)
-    Card(modifier = Modifier.width(140.dp)) {
-        Column(
-            Modifier
-                .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            // The title is right underneath, so the picture needs no description of its own.
-            Artwork(
-                url = item.artworkUrl,
-                contentDescription = null,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                episode.title,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (episode.durationMs > 0) {
-                LinearProgressIndicator(
-                    progress = { PlaybackRules.progress(episode.positionMs, episode.durationMs) },
-                    modifier = Modifier.fillMaxWidth().height(3.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    gapSize = 0.dp,
-                    drawStopIndicator = {},
+    var menuOpen by remember { mutableStateOf(false) }
+    Box {
+        Card(modifier = Modifier.width(140.dp)) {
+            Column(
+                Modifier
+                    .combinedClickable(
+                        onClick = onClick,
+                        onLongClick = { menuOpen = true },
+                        onLongClickLabel = stringResource(R.string.home_episode_actions),
+                    )
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                // The title is right underneath, so the picture needs no description of its own.
+                Artwork(
+                    url = item.artworkUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                val minutes = ((remainingMs + MS_PER_MINUTE - 1) / MS_PER_MINUTE).coerceAtLeast(1L).toInt()
                 Text(
-                    pluralStringResource(R.plurals.home_minutes_left, minutes, minutes),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    episode.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                if (episode.durationMs > 0) {
+                    LinearProgressIndicator(
+                        progress = { PlaybackRules.progress(episode.positionMs, episode.durationMs) },
+                        modifier = Modifier.fillMaxWidth().height(3.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        gapSize = 0.dp,
+                        drawStopIndicator = {},
+                    )
+                    val minutes = ((remainingMs + MS_PER_MINUTE - 1) / MS_PER_MINUTE).coerceAtLeast(1L).toInt()
+                    Text(
+                        pluralStringResource(R.plurals.home_minutes_left, minutes, minutes),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
+        EpisodeActionsMenu(
+            expanded = menuOpen,
+            onDismiss = { menuOpen = false },
+            played = episode.played,
+            download = download,
+            onPlayNext = onPlayNext,
+            onAddToQueue = onAddToQueue,
+            onTogglePlayed = onTogglePlayed,
+            onDownload = onDownload,
+            onRemoveDownload = onRemoveDownload,
+            onOpenPodcast = onOpenPodcast,
+        )
     }
 }
 
 /**
- * A queued episode: drag handle, artwork, title and show. Swiping it either way removes it;
- * screen readers get Remove / Move up / Move down as actions instead.
+ * A queued episode: drag handle, artwork, title and show. A tap plays it; a long press anywhere
+ * but the handle opens the episode menu. Swiping it either way removes it; screen readers get
+ * Remove / Move up / Move down as actions instead.
  */
 @Composable
 private fun UpNextRow(
     item: EpisodeWithPodcast,
     isDragging: Boolean,
+    download: Download?,
     onClick: () -> Unit,
+    onPlayNext: () -> Unit,
+    onTogglePlayed: () -> Unit,
+    onDownload: () -> Unit,
+    onRemoveDownload: () -> Unit,
     onOpenPodcast: () -> Unit,
     onRemove: () -> Unit,
     onMoveUp: (() -> Unit)?,
@@ -391,6 +442,8 @@ private fun UpNextRow(
     val removeLabel = stringResource(CoreUiR.string.remove_from_queue)
     val moveUpLabel = stringResource(R.string.home_move_up)
     val moveDownLabel = stringResource(R.string.home_move_down)
+    val actionsLabel = stringResource(R.string.home_episode_actions)
+    var menuOpen by remember { mutableStateOf(false) }
 
     SwipeToDismissBox(
         state = dismissState,
@@ -430,49 +483,72 @@ private fun UpNextRow(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 6.dp else 0.dp),
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onClick)
-                    .padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Box(
-                    modifier = handleModifier.size(40.dp),
-                    contentAlignment = Alignment.Center,
+            Box {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        painter = painterResource(CoreUiR.drawable.ic_drag_handle),
-                        contentDescription = stringResource(R.string.home_reorder),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    // Outside the clickable part, so holding the handle never opens the menu.
+                    Box(
+                        modifier = handleModifier.size(40.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            painter = painterResource(CoreUiR.drawable.ic_drag_handle),
+                            contentDescription = stringResource(R.string.home_reorder),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .combinedClickable(
+                                onClick = onClick,
+                                onLongClick = { menuOpen = true },
+                                onLongClickLabel = actionsLabel,
+                            )
+                            .padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // The title is right beside it, so the picture needs no description of its own.
+                        Artwork(
+                            url = item.artworkUrl,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                        )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                item.episode.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                item.podcastTitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
-                // The title is right beside it, so the picture needs no description of its own.
-                Artwork(
-                    url = item.artworkUrl,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
+                EpisodeActionsMenu(
+                    expanded = menuOpen,
+                    onDismiss = { menuOpen = false },
+                    played = item.episode.played,
+                    download = download,
+                    onPlayNext = onPlayNext,
+                    onRemoveFromQueue = onRemove,
+                    onTogglePlayed = onTogglePlayed,
+                    onDownload = onDownload,
+                    onRemoveDownload = onRemoveDownload,
+                    onOpenPodcast = onOpenPodcast,
                 )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        item.episode.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        item.podcastTitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.clickable(onClick = onOpenPodcast),
-                    )
-                }
             }
         }
     }

@@ -18,4 +18,5 @@
     <string name="home_reorder">Drag to reorder</string>
     <string name="home_move_up">Move up</string>
     <string name="home_move_down">Move down</string>
+    <string name="home_episode_actions">Episode actions</string>
 </resources>

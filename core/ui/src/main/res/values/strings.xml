@@ -21,6 +21,7 @@
     <string name="remove_from_queue">Remove from Up next</string>
     <string name="download">Download</string>
     <string name="remove_download">Remove download</string>
+    <string name="go_to_show">Go to show</string>
     <string name="downloaded">Downloaded</string>
     <string name="downloading">Downloading</string>
     <string name="download_failed">Download failed</string>
