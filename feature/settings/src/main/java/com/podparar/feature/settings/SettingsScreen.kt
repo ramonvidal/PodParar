@@ -21,7 +21,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -70,7 +69,6 @@ private val OPML_MIME_TYPES = arrayOf("text/x-opml", "text/xml", "application/xm
 
 @Composable
 internal fun SettingsScreen(
-    onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -123,7 +121,6 @@ internal fun SettingsScreen(
 
     SettingsContent(
         state = state,
-        onBack = onBack,
         onSkipBackChange = viewModel::setSkipBackMs,
         onSkipForwardChange = viewModel::setSkipForwardMs,
         onSkipSilenceChange = viewModel::setSkipSilence,
@@ -176,7 +173,6 @@ private fun opmlMessage(status: OpmlStatus): String = when (status) {
 @Composable
 internal fun SettingsContent(
     state: SettingsUiState,
-    onBack: () -> Unit,
     onSkipBackChange: (Long) -> Unit,
     onSkipForwardChange: (Long) -> Unit,
     onSkipSilenceChange: (Boolean) -> Unit,
@@ -192,14 +188,6 @@ internal fun SettingsContent(
     Column(modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text(stringResource(CoreUiR.string.settings)) },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        painterResource(CoreUiR.drawable.ic_arrow_back),
-                        contentDescription = stringResource(R.string.settings_back),
-                    )
-                }
-            },
             // The app's Scaffold already keeps clear of the status bar.
             windowInsets = WindowInsets(0, 0, 0, 0),
         )

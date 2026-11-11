@@ -30,7 +30,6 @@ class SettingsScreenshotTest {
                     Surface(Modifier.fillMaxSize()) {
                         SettingsContent(
                             state = state,
-                            onBack = {},
                             onSkipBackChange = {},
                             onSkipForwardChange = {},
                             onSkipSilenceChange = {},

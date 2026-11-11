@@ -1,5 +1,4 @@
 <resources>
-    <string name="settings_back">Back</string>
     <string name="settings_playback">Playback</string>
     <string name="settings_skip_back">Skip back</string>
     <string name="settings_skip_forward">Skip forward</string>

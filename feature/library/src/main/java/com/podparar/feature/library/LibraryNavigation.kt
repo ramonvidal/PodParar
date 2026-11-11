@@ -21,17 +21,15 @@ fun podcastRoute(feedUrl: String): String = "podcast/" + Uri.encode(feedUrl)
 /**
  * The Library grid and each show's page. [onOpenPodcast] is called with a feed URL when a show
  * is tapped, [onFindShows] when the empty Library's button is tapped, and [onBack] to leave a
- * show's page (the back arrow, or after unsubscribing). [onOpenSettings] is called from the
- * Library top bar's settings action.
+ * show's page (the back arrow, or after unsubscribing).
  */
 fun NavGraphBuilder.libraryScreen(
     onOpenPodcast: (feedUrl: String) -> Unit,
     onFindShows: () -> Unit,
     onBack: () -> Unit,
-    onOpenSettings: () -> Unit,
 ) {
     composable(LIBRARY_ROUTE) {
-        LibraryScreen(onOpenPodcast = onOpenPodcast, onFindShows = onFindShows, onOpenSettings = onOpenSettings)
+        LibraryScreen(onOpenPodcast = onOpenPodcast, onFindShows = onFindShows)
     }
     composable(
         route = PODCAST_ROUTE,

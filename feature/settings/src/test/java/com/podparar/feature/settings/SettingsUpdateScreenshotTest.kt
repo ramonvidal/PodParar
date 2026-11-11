@@ -29,7 +29,6 @@ class SettingsUpdateScreenshotTest {
                 Surface(Modifier.fillMaxSize()) {
                     SettingsContent(
                         state = SettingsUiState(appVersion = "0.24", updateCheck = updateCheck),
-                        onBack = {},
                         onSkipBackChange = {},
                         onSkipForwardChange = {},
                         onSkipSilenceChange = {},

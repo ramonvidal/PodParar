@@ -49,9 +49,10 @@ enum class TopLevelDestination(
     Home(HOME_ROUTE, R.string.nav_home, CoreUiR.drawable.ic_home),
     Library(LIBRARY_ROUTE, R.string.nav_library, CoreUiR.drawable.ic_library),
     Discover(DISCOVER_ROUTE, R.string.nav_discover, CoreUiR.drawable.ic_search),
+    Settings(SETTINGS_ROUTE, R.string.nav_settings, CoreUiR.drawable.ic_settings),
 }
 
-/** The three tabs, with the mini player just above them on every screen but the full player. */
+/** The four tabs, with the mini player just above them on every screen but the full player. */
 @Composable
 fun PodPararNavHost() {
     val navController = rememberNavController()
@@ -109,20 +110,19 @@ fun PodPararNavHost() {
                 onOpenPodcast = { navController.navigate(podcastRoute(it)) },
                 onFindShows = { navController.navigateToTab(DISCOVER_ROUTE) },
                 onBack = { navController.popBackStack() },
-                onOpenSettings = { navController.navigate(SETTINGS_ROUTE) { launchSingleTop = true } },
             )
             discoverScreen(onOpenPodcast = { navController.navigate(podcastRoute(it)) })
             playerScreen(onClose = { navController.popBackStack() })
-            settingsScreen(onBack = { navController.popBackStack() })
+            settingsScreen()
         }
     }
 }
 
-/** A show's page belongs to Library, wherever it was opened from, and so does Settings. */
+/** A show's page belongs to Library, wherever it was opened from. */
 private fun NavDestination?.isInTab(tab: TopLevelDestination): Boolean {
     if (this == null) return false
     if (hierarchy.any { it.route == tab.route }) return true
-    return tab == TopLevelDestination.Library && (route == PODCAST_ROUTE || route == SETTINGS_ROUTE)
+    return tab == TopLevelDestination.Library && route == PODCAST_ROUTE
 }
 
 /** Switches tabs the way the bottom bar does, keeping each tab's state. */

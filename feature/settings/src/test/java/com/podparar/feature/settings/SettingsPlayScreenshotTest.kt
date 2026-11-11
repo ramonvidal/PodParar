@@ -29,7 +29,6 @@ class SettingsPlayScreenshotTest {
                 Surface(Modifier.fillMaxSize()) {
                     SettingsContent(
                         state = SettingsUiState(showUpdateCheck = false, appVersion = "0.32"),
-                        onBack = {},
                         onSkipBackChange = {},
                         onSkipForwardChange = {},
                         onSkipSilenceChange = {},

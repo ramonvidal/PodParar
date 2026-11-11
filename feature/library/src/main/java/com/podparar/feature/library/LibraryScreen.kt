@@ -20,8 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -31,7 +29,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,7 +37,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.podparar.core.model.Podcast
 import com.podparar.core.ui.Artwork
 import com.podparar.core.ui.EmptyState
-import com.podparar.core.ui.R as CoreUiR
 
 internal data class LibraryUiState(
     val podcasts: List<Podcast> = emptyList(),
@@ -52,7 +48,6 @@ internal data class LibraryUiState(
 internal fun LibraryScreen(
     onOpenPodcast: (String) -> Unit,
     onFindShows: () -> Unit,
-    onOpenSettings: () -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -61,7 +56,6 @@ internal fun LibraryScreen(
         onOpenPodcast = onOpenPodcast,
         onRefresh = viewModel::refresh,
         onFindShows = onFindShows,
-        onOpenSettings = onOpenSettings,
     )
 }
 
@@ -73,19 +67,10 @@ internal fun LibraryContent(
     onRefresh: () -> Unit,
     onFindShows: () -> Unit,
     modifier: Modifier = Modifier,
-    onOpenSettings: () -> Unit = {},
 ) {
     Column(modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text(stringResource(R.string.library_title)) },
-            actions = {
-                IconButton(onClick = onOpenSettings) {
-                    Icon(
-                        painterResource(CoreUiR.drawable.ic_settings),
-                        contentDescription = stringResource(CoreUiR.string.settings),
-                    )
-                }
-            },
             // The app's Scaffold already keeps clear of the status bar.
             windowInsets = WindowInsets(0, 0, 0, 0),
         )

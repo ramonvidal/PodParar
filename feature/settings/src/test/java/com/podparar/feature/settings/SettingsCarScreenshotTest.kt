@@ -29,7 +29,6 @@ class SettingsCarScreenshotTest {
                 Surface(Modifier.fillMaxSize()) {
                     SettingsContent(
                         state = SettingsUiState(nextPreviousSkip = false, appVersion = "0.27"),
-                        onBack = {},
                         onSkipBackChange = {},
                         onSkipForwardChange = {},
                         onSkipSilenceChange = {},

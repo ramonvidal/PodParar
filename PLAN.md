@@ -16,7 +16,7 @@ from its state and screenshotted, and GitHub Actions publishing an installable A
 | Accounts and sync | **None.** Everything lives on the phone: no sign-in, no server, no Firebase. Subscriptions move between phones with OPML export/import |
 | Finding shows | The **Apple Podcasts directory** search (free, no API key), plus "Add by RSS link" for anything not listed. Results show artwork, title and author; one tap subscribes |
 | Feeds | Plain RSS 2.0 with the iTunes tags, parsed on the phone. `http://` feeds and audio are allowed, since many podcasts still use them. A refresh never touches progress on episodes already known |
-| Tab names | **Home, Library, Discover** |
+| Tab names | **Home, Library, Discover, Settings** |
 | Home | "Continue listening" (started, not finished) at the top, then **Up next** (the queue), then **New episodes** from every subscription, newest first |
 | Library | A grid of subscribed shows' artwork, sorted by name; a dot on shows with unplayed new episodes. Tap a show for its page: description, episodes, "Mark all played", Unsubscribe |
 | Playback | **Media3 ExoPlayer in a `MediaSessionService`**: keeps playing with the screen off, shows on the lock screen and in the notification, works with Bluetooth and headphone buttons, pauses when headphones are unplugged and for calls (audio focus) |
@@ -28,7 +28,7 @@ from its state and screenshotted, and GitHub Actions publishing an installable A
 | Sleep timer | 15, 30, 45, 60 min or **end of episode**; a quiet fade over the last few seconds; shake the phone to add 5 minutes |
 | Downloads | Streaming by default. **Download** any episode to listen offline; optional **auto-download** of the newest episode per show, **Wi-Fi only** by default. Played downloads are deleted after a day |
 | New episodes | Feeds refresh every few hours in the background (WorkManager) and on pull-to-refresh. An optional notification "3 new episodes" (one per refresh, not one per episode) |
-| Settings | One **Settings** screen from the Library tab's top bar: skip lengths, auto-download, Wi-Fi only, new episode alerts, OPML import/export, app updates |
+| Settings | One **Settings** screen, the fourth tab (Home, Library, Discover, Settings): skip lengths, auto-download, Wi-Fi only, new episode alerts, OPML import/export, app updates |
 | Look | ChoreMe's **"Soft cards"**: light grey page, white cards, black and grey text, **one accent colour** for the main action and the selected tab. Artwork is the only other colour. Dark mode from day one. Font: Figtree |
 | Pictures | **No emoji.** Controls use Google's **Material Symbols** (Apache 2.0), copied as vector drawables into `:core:ui`. Show and episode art comes from the feeds |
 | Screenshots | Every screen (light, dark, the largest text size, empty) is drawn from its state alone (`XxxContent`) and screenshotted with Roborazzi on each release (`screenshots.zip`) |
