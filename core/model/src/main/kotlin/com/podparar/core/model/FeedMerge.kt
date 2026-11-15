@@ -5,8 +5,8 @@ object FeedMerge {
     /**
      * Merges a fresh download onto what's stored, so a refresh never loses progress.
      * - Fresh episodes with a new id are added as parsed.
-     * - Known ids take the fresh title, description, audioUrl, imageUrl and pubDate, and the fresh durationMs unless it is 0
-     *   (then the stored one stays); they keep the stored positionMs, played and lastPlayedAt.
+     * - Known ids take the fresh title, description, audioUrl, imageUrl and pubDate, the fresh durationMs unless it is 0 and the fresh chaptersUrl unless it is null
+     *   (then the stored ones stay); they keep the stored positionMs, played and lastPlayedAt.
      * - Stored episodes missing from the fresh feed are kept unchanged.
      * - Duplicate ids in [fresh]: the first wins.
      * Result: newest first by pubDate; ties keep fresh-feed order, then stored order.
@@ -26,6 +26,7 @@ object FeedMerge {
                 imageUrl = new.imageUrl,
                 pubDate = new.pubDate,
                 durationMs = if (new.durationMs != 0L) new.durationMs else old.durationMs,
+                chaptersUrl = new.chaptersUrl ?: old.chaptersUrl,
             )
         }
         val kept = storedById.values.filter { it.id !in freshById }

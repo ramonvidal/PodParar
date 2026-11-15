@@ -13,6 +13,7 @@ import com.podparar.core.data.EpisodeRepository
 import com.podparar.core.model.DownloadState
 import com.podparar.core.model.LoadError
 import com.podparar.core.model.PodcastException
+import com.podparar.core.settings.AppLocale
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
@@ -38,7 +39,7 @@ internal class DownloadWorker @AssistedInject constructor(
         target.parentFile?.mkdirs()
         val title = episodes.getEpisode(episodeId)?.title.orEmpty()
         val notificationId = NOTIFICATION_ID_BASE + (episodeId.hashCode() and 0xFFFF)
-        Notifications.createDownloadsChannel(applicationContext)
+        Notifications.createDownloadsChannel(AppLocale.wrap(applicationContext))
         showProgress(notificationId, title, percent = 0, indeterminate = true)
 
         return try {
@@ -77,7 +78,7 @@ internal class DownloadWorker @AssistedInject constructor(
     }
 
     private suspend fun showProgress(notificationId: Int, title: String, percent: Int, indeterminate: Boolean) {
-        val context = applicationContext
+        val context = AppLocale.wrap(applicationContext)
         val downloading = context.getString(R.string.downloads_downloading)
         val notification = NotificationCompat.Builder(context, Notifications.DOWNLOADS_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_podparar)

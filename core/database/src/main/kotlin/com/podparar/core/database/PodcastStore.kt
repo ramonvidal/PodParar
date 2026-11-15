@@ -1,5 +1,6 @@
 package com.podparar.core.database
 
+import com.podparar.core.model.Chapter
 import com.podparar.core.model.Download
 import com.podparar.core.model.Episode
 import com.podparar.core.model.EpisodeWithPodcast
@@ -34,7 +35,7 @@ interface PodcastStore {
     /** Sets that show's own playback speed; null clears it. Unknown feed: no-op. */
     suspend fun setSpeed(feedUrl: String, speed: Float?)
 
-    /** Removes the podcast, all its episodes, their queue entries and their download rows. */
+    /** Removes the podcast, all its episodes, their queue entries, download rows and chapters. */
     suspend fun deletePodcast(feedUrl: String)
 
     /** One episode by id; null while it isn't stored. */
@@ -79,4 +80,12 @@ interface PodcastStore {
 
     /** Unknown id: no-op. */
     suspend fun deleteDownload(episodeId: String)
+
+    /** The episode's chapters, ordered by position. */
+    fun observeChapters(episodeId: String): Flow<List<Chapter>>
+
+    suspend fun chapters(episodeId: String): List<Chapter>
+
+    /** Replaces all the episode's chapters in one transaction; an empty list clears them. */
+    suspend fun saveChapters(episodeId: String, chapters: List<Chapter>)
 }

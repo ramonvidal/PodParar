@@ -1,4 +1,9 @@
 <resources>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_auto">Automatic</string>
+    <string name="settings_language_auto_hint">Follows your phone: Baianês on Portuguese phones, English on the others</string>
+    <string name="settings_language_english" translatable="false">English</string>
+    <string name="settings_language_baianes" translatable="false">Baianês</string>
     <string name="settings_playback">Playback</string>
     <string name="settings_skip_back">Skip back</string>
     <string name="settings_skip_forward">Skip forward</string>

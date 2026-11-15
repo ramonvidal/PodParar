@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,6 +48,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.podparar.core.model.Chapter
+import com.podparar.core.model.Chapters
 import com.podparar.core.model.Formats
 import com.podparar.core.model.NowPlaying
 import com.podparar.core.model.PlaybackSpeeds
@@ -94,6 +99,9 @@ internal fun PlayerScreen(
         onSetSleepTimer = viewModel::setSleepTimer,
         onSleepAtEndOfEpisode = viewModel::setSleepAtEndOfEpisode,
         onCancelSleepTimer = viewModel::cancelSleepTimer,
+        onSeekToChapter = viewModel::seekToChapter,
+        onPreviousChapter = viewModel::previousChapter,
+        onNextChapter = viewModel::nextChapter,
     )
 }
 
@@ -121,6 +129,9 @@ internal fun PlayerContent(
     onSetSleepTimer: (Int) -> Unit = {},
     onSleepAtEndOfEpisode: () -> Unit = {},
     onCancelSleepTimer: () -> Unit = {},
+    onSeekToChapter: (Int) -> Unit = {},
+    onPreviousChapter: () -> Unit = {},
+    onNextChapter: () -> Unit = {},
 ) {
     Column(modifier.fillMaxSize()) {
         Row(
@@ -168,6 +179,9 @@ internal fun PlayerContent(
                 onSetSleepTimer = onSetSleepTimer,
                 onSleepAtEndOfEpisode = onSleepAtEndOfEpisode,
                 onCancelSleepTimer = onCancelSleepTimer,
+                onSeekToChapter = onSeekToChapter,
+                onPreviousChapter = onPreviousChapter,
+                onNextChapter = onNextChapter,
             )
         }
     }
@@ -188,7 +202,13 @@ private fun NowPlayingBody(
     onSetSleepTimer: (Int) -> Unit,
     onSleepAtEndOfEpisode: () -> Unit,
     onCancelSleepTimer: () -> Unit,
+    onSeekToChapter: (Int) -> Unit,
+    onPreviousChapter: () -> Unit,
+    onNextChapter: () -> Unit,
 ) {
+    var showChaptersSheet by remember { mutableStateOf(false) }
+    val chapters = state.chapters
+    val chapterIndex = Chapters.indexAt(chapters, state.positionMs)
     var showSpeedSheet by remember { mutableStateOf(false) }
     var showSleepSheet by remember { mutableStateOf(false) }
     Column(
@@ -228,7 +248,17 @@ private fun NowPlayingBody(
             durationMs = state.durationMs,
             onSeek = onSeek,
         )
-        Spacer(Modifier.height(8.dp))
+        if (chapters.isNotEmpty()) {
+            ChapterRow(
+                currentTitle = chapterIndex?.let { chapters[it].title }.orEmpty(),
+                hasNext = Chapters.nextStartMs(chapters, state.positionMs) != null,
+                onPrevious = onPreviousChapter,
+                onNext = onNextChapter,
+                onOpenList = { showChaptersSheet = true },
+            )
+        } else {
+            Spacer(Modifier.height(8.dp))
+        }
         Controls(
             isPlaying = state.isPlaying,
             isBuffering = state.isBuffering,
@@ -251,6 +281,14 @@ private fun NowPlayingBody(
             ) {
                 Text(speedLabel, style = MaterialTheme.typography.titleMedium)
             }
+            if (chapters.isNotEmpty()) {
+                IconButton(onClick = { showChaptersSheet = true }) {
+                    Icon(
+                        painterResource(CoreUiR.drawable.ic_format_list_bulleted),
+                        contentDescription = stringResource(R.string.player_chapters),
+                    )
+                }
+            }
             SleepTimerButton(
                 sleepTimer = sleepTimer,
                 now = now,
@@ -259,6 +297,14 @@ private fun NowPlayingBody(
         }
     }
 
+    if (showChaptersSheet) {
+        ChaptersSheet(
+            chapters = chapters,
+            currentIndex = chapterIndex,
+            onSelect = onSeekToChapter,
+            onDismiss = { showChaptersSheet = false },
+        )
+    }
     if (showSpeedSheet) {
         SpeedSheet(
             currentSpeed = state.speed,
@@ -289,7 +335,12 @@ private fun SleepTimerButton(sleepTimer: SleepTimer?, now: Long, onClick: () -> 
             )
         }
     } else {
-        val label = SleepTimers.label(sleepTimer, now)
+        val minutes = SleepTimers.minutesLeft(sleepTimer, now)
+        val label = if (minutes != null) {
+            stringResource(R.string.player_sleep_minutes, minutes)
+        } else {
+            stringResource(CoreUiR.string.end_of_episode)
+        }
         val description = stringResource(R.string.player_sleep_running, label)
         TextButton(
             onClick = onClick,
@@ -302,6 +353,116 @@ private fun SleepTimerButton(sleepTimer: SleepTimer?, now: Long, onClick: () -> 
             )
             Spacer(Modifier.size(8.dp))
             Text(label, style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
+
+/** Previous chapter, the current chapter's title (opens the list) and next chapter, in one slim row. */
+@Composable
+private fun ChapterRow(
+    currentTitle: String,
+    hasNext: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onOpenList: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onPrevious) {
+            Icon(
+                painterResource(CoreUiR.drawable.ic_skip_previous),
+                contentDescription = stringResource(R.string.player_chapter_previous),
+            )
+        }
+        Text(
+            text = currentTitle,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onOpenList)
+                .padding(vertical = 12.dp),
+        )
+        IconButton(onClick = onNext, enabled = hasNext) {
+            Icon(
+                painterResource(CoreUiR.drawable.ic_skip_next),
+                contentDescription = stringResource(R.string.player_chapter_next),
+            )
+        }
+    }
+}
+
+/** The chapter list in a bottom sheet; picking one seeks there and closes the sheet. */
+@Composable
+private fun ChaptersSheet(
+    chapters: List<Chapter>,
+    currentIndex: Int?,
+    onSelect: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        ChaptersSheetContent(
+            chapters = chapters,
+            currentIndex = currentIndex,
+            onSelect = { index ->
+                onSelect(index)
+                scope.launch { sheetState.hide() }.invokeOnCompletion {
+                    if (!sheetState.isVisible) onDismiss()
+                }
+            },
+        )
+    }
+}
+
+/** Title plus one row per chapter (start time and title), the current one in the primary colour. */
+@Composable
+internal fun ChaptersSheetContent(
+    chapters: List<Chapter>,
+    currentIndex: Int?,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = (currentIndex ?: 0).coerceAtLeast(0),
+    )
+    Column(modifier.fillMaxWidth()) {
+        SheetHeader(title = stringResource(R.string.player_chapters), note = null)
+        LazyColumn(state = listState, modifier = Modifier.padding(bottom = 24.dp)) {
+            itemsIndexed(chapters) { index, chapter ->
+                val current = index == currentIndex
+                val color = if (current) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(index) }
+                        .padding(horizontal = 24.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = Formats.timeLabel(chapter.startMs),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = color,
+                        modifier = Modifier.widthIn(min = 56.dp),
+                    )
+                    Spacer(Modifier.size(12.dp))
+                    Text(
+                        text = chapter.title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = color,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
         }
     }
 }

@@ -12,4 +12,5 @@ data class NowPlaying(
     val positionMs: Long,
     val durationMs: Long,
     val speed: Float,
+    val chapters: List<Chapter> = emptyList(),
 )

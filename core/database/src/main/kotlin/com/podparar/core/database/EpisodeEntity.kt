@@ -21,6 +21,7 @@ internal data class EpisodeEntity(
     val positionMs: Long,
     val played: Boolean,
     val lastPlayedAt: Long,
+    val chaptersUrl: String?,
 )
 
 internal fun EpisodeEntity.toModel(): Episode = Episode(
@@ -35,6 +36,7 @@ internal fun EpisodeEntity.toModel(): Episode = Episode(
     positionMs = positionMs,
     played = played,
     lastPlayedAt = lastPlayedAt,
+    chaptersUrl = chaptersUrl,
 )
 
 internal fun Episode.toEntity(): EpisodeEntity = EpisodeEntity(
@@ -49,4 +51,5 @@ internal fun Episode.toEntity(): EpisodeEntity = EpisodeEntity(
     positionMs = positionMs,
     played = played,
     lastPlayedAt = lastPlayedAt,
+    chaptersUrl = chaptersUrl,
 )

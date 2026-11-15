@@ -45,6 +45,15 @@ interface PlayerController {
      */
     fun setSpeed(speed: Float)
 
+    /** Seeks to the start of the loaded episode's chapters[index]; out of range: nothing. */
+    fun seekToChapter(index: Int)
+
+    /** More than 3 s into a chapter: its start; else the previous chapter's start (Chapters.previousStartMs). */
+    fun previousChapter()
+
+    /** The next chapter's start (Chapters.nextStartMs); none: nothing. */
+    fun nextChapter()
+
     /** Pauses after [minutes] (fading out over the last seconds). Replaces any running timer. */
     fun setSleepTimer(minutes: Int)
 

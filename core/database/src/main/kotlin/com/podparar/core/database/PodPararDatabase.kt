@@ -5,8 +5,8 @@ import androidx.room.RoomDatabase
 
 /** Schemas are exported to core/database/schemas; every version bump needs a migration and a migration test. */
 @Database(
-    entities = [PodcastEntity::class, EpisodeEntity::class, QueueEntity::class, DownloadEntity::class],
-    version = 4,
+    entities = [PodcastEntity::class, EpisodeEntity::class, QueueEntity::class, DownloadEntity::class, ChapterEntity::class],
+    version = 5,
     exportSchema = true,
 )
 internal abstract class PodPararDatabase : RoomDatabase() {
@@ -14,6 +14,7 @@ internal abstract class PodPararDatabase : RoomDatabase() {
     abstract fun episodeDao(): EpisodeDao
     abstract fun queueDao(): QueueDao
     abstract fun downloadDao(): DownloadDao
+    abstract fun chapterDao(): ChapterDao
 
     companion object {
         const val NAME = "podparar.db"

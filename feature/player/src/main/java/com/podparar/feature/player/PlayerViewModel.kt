@@ -35,6 +35,12 @@ class PlayerViewModel @Inject constructor(
 
     fun seekTo(positionMs: Long) = controller.seekTo(positionMs)
 
+    fun seekToChapter(index: Int) = controller.seekToChapter(index)
+
+    fun previousChapter() = controller.previousChapter()
+
+    fun nextChapter() = controller.nextChapter()
+
     fun setSpeed(speed: Float) = controller.setSpeed(speed)
 
     fun setSleepTimer(minutes: Int) = controller.setSleepTimer(minutes)

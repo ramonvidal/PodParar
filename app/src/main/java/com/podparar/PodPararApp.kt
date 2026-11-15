@@ -1,9 +1,11 @@
 package com.podparar
 
 import android.app.Application
+import android.content.Context
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.podparar.core.downloads.BackgroundWork
+import com.podparar.core.settings.AppLocale
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -11,6 +13,10 @@ import javax.inject.Inject
 class PodPararApp : Application(), Configuration.Provider {
     // Lets background workers (downloads, feed refresh) get their dependencies from Hilt.
     @Inject lateinit var workerFactory: HiltWorkerFactory
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLocale.wrap(base))
+    }
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()

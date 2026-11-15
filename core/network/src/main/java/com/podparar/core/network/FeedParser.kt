@@ -15,6 +15,8 @@ import java.io.InputStream
 /** RSS 2.0 + iTunes podcast feed parser. */
 internal object FeedParser {
     private const val ITUNES = "http://www.itunes.com/dtds/podcast-1.0.dtd"
+    private const val PODCAST_NS = "https://podcastindex.org/namespace/1.0"
+    private const val PODCAST_NS_OLD = "https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md"
     private const val CONTENT = "http://purl.org/rss/1.0/modules/content/"
     private const val UNTITLED = "Untitled episode"
 
@@ -118,6 +120,11 @@ internal object FeedParser {
                     if (!url.isNullOrEmpty()) item.enclosures += Enclosure(url, parser.getAttributeValue(null, "type")?.trim().orEmpty())
                     parser.skip()
                 }
+                parser.isPodcast("chapters") -> {
+                    val url = parser.getAttributeValue(null, "url")?.trim()
+                    if (item.chaptersUrl == null && isWebUrl(url)) item.chaptersUrl = url
+                    parser.skip()
+                }
                 parser.isIn(CONTENT, "encoded") -> parser.readText().let { if (item.content.isNullOrEmpty()) item.content = it }
                 parser.isIn(ITUNES, "summary") -> parser.readText().let { if (item.summary.isNullOrEmpty()) item.summary = it }
                 parser.isIn(ITUNES, "duration") -> parser.readText().let { if (item.duration == null) item.duration = it }
@@ -143,6 +150,7 @@ internal object FeedParser {
         var summary: String? = null
         var duration: String? = null
         var image: String? = null
+        var chaptersUrl: String? = null
         val enclosures = mutableListOf<Enclosure>()
 
         fun toEpisode(feedUrl: String, artwork: String?): Episode? {
@@ -163,6 +171,7 @@ internal object FeedParser {
                 durationMs = DurationParser.parseMs(duration),
                 positionMs = 0L,
                 played = false,
+                chaptersUrl = chaptersUrl,
             )
         }
     }
@@ -211,6 +220,11 @@ internal object FeedParser {
     private fun XmlPullParser.isPlain(tag: String) = name == tag && namespace.isNullOrEmpty()
 
     private fun XmlPullParser.isIn(ns: String, tag: String) = name == tag && namespace == ns
+
+    private fun XmlPullParser.isPodcast(tag: String) = name == tag && (namespace == PODCAST_NS || namespace == PODCAST_NS_OLD)
+
+    private fun isWebUrl(url: String?): Boolean =
+        url != null && (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true))
 
     private fun notAFeed(): Nothing = throw PodcastException(LoadError.NOT_A_FEED)
 }

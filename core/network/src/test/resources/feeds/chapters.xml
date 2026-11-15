@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:podcast="https://podcastindex.org/namespace/1.0"
+     xmlns:old="https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md">
+  <channel>
+    <title>Chapter Chat</title>
+    <description>A show with chapters.</description>
+    <item>
+      <title>New namespace</title>
+      <guid isPermaLink="false">ch-new</guid>
+      <pubDate>Wed, 02 Oct 2024 10:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.example.com/ch-new.mp3" length="1000" type="audio/mpeg"/>
+      <podcast:chapters url="https://cdn.example.com/ch-new-chapters.json" type="application/json+chapters"/>
+    </item>
+    <item>
+      <title>Old namespace</title>
+      <guid isPermaLink="false">ch-old</guid>
+      <pubDate>Tue, 01 Oct 2024 10:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.example.com/ch-old.mp3" length="1000" type="audio/mpeg"/>
+      <old:chapters url="http://cdn.example.com/ch-old-chapters.json" type="application/json+chapters"/>
+    </item>
+    <item>
+      <title>No chapters</title>
+      <guid isPermaLink="false">ch-none</guid>
+      <pubDate>Mon, 30 Sep 2024 10:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.example.com/ch-none.mp3" length="1000" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Blank url</title>
+      <guid isPermaLink="false">ch-blank</guid>
+      <pubDate>Sun, 29 Sep 2024 10:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.example.com/ch-blank.mp3" length="1000" type="audio/mpeg"/>
+      <podcast:chapters url="   " type="application/json+chapters"/>
+    </item>
+    <item>
+      <title>Ftp url</title>
+      <guid isPermaLink="false">ch-ftp</guid>
+      <pubDate>Sat, 28 Sep 2024 10:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.example.com/ch-ftp.mp3" length="1000" type="audio/mpeg"/>
+      <podcast:chapters url="ftp://cdn.example.com/chapters.json" type="application/json+chapters"/>
+    </item>
+    <item>
+      <title>No url attribute</title>
+      <guid isPermaLink="false">ch-nourl</guid>
+      <pubDate>Fri, 27 Sep 2024 10:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.example.com/ch-nourl.mp3" length="1000" type="audio/mpeg"/>
+      <podcast:chapters type="application/json+chapters"/>
+    </item>
+  </channel>
+</rss>

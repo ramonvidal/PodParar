@@ -31,4 +31,11 @@ internal object SettingsModule {
     @Singleton
     fun provideDownloadSettings(dataStore: DataStore<Preferences>): DownloadSettings =
         DataStoreDownloadSettings(dataStore)
+
+    @Provides
+    @Singleton
+    fun provideLanguageSettings(
+        dataStore: DataStore<Preferences>,
+        @ApplicationContext context: Context,
+    ): LanguageSettings = DataStoreLanguageSettings(dataStore, context)
 }

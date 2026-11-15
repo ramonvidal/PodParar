@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.podparar.core.model.Download
+import com.podparar.core.model.DownloadState
 import com.podparar.core.model.Episode
 import com.podparar.core.model.EpisodeWithPodcast
 import com.podparar.core.model.PlaybackRules
@@ -383,12 +384,23 @@ private fun ContinueCard(
                         gapSize = 0.dp,
                         drawStopIndicator = {},
                     )
-                    val minutes = ((remainingMs + MS_PER_MINUTE - 1) / MS_PER_MINUTE).coerceAtLeast(1L).toInt()
-                    Text(
-                        pluralStringResource(R.plurals.home_minutes_left, minutes, minutes),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                }
+                val downloaded = download?.state == DownloadState.DONE
+                if (episode.durationMs > 0 || downloaded) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        if (episode.durationMs > 0) {
+                            val minutes = ((remainingMs + MS_PER_MINUTE - 1) / MS_PER_MINUTE).coerceAtLeast(1L).toInt()
+                            Text(
+                                pluralStringResource(R.plurals.home_minutes_left, minutes, minutes),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (downloaded) DownloadedMark()
+                    }
                 }
             }
         }
@@ -527,13 +539,20 @@ private fun UpNextRow(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            Text(
-                                item.podcastTitle,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                if (download?.state == DownloadState.DONE) DownloadedMark()
+                                Text(
+                                    item.podcastTitle,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false),
+                                )
+                            }
                         }
                     }
                 }
@@ -552,6 +571,17 @@ private fun UpNextRow(
             }
         }
     }
+}
+
+/** A small grey "downloaded" tick shown on cards and rows whose audio is on the phone. */
+@Composable
+private fun DownloadedMark() {
+    Icon(
+        painter = painterResource(CoreUiR.drawable.ic_download_done),
+        contentDescription = stringResource(CoreUiR.string.downloaded),
+        modifier = Modifier.size(16.dp),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 /** Up next keys are prefixed: the same episode can also be listed under New episodes. */

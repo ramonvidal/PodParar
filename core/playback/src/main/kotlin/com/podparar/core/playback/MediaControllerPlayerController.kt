@@ -8,10 +8,13 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.podparar.core.data.ChapterRepository
 import com.podparar.core.data.DownloadRepository
 import com.podparar.core.data.EpisodeRepository
 import com.podparar.core.data.PodcastRepository
 import com.podparar.core.data.QueueRepository
+import com.podparar.core.model.Chapter
+import com.podparar.core.model.Chapters
 import com.podparar.core.model.NowPlaying
 import com.podparar.core.model.PlaybackRules
 import com.podparar.core.model.PlaybackSpeeds
@@ -55,6 +58,7 @@ internal class MediaControllerPlayerController @Inject constructor(
     private val downloads: DownloadRepository,
     private val podcasts: PodcastRepository,
     private val sleepTimers: SleepTimerController,
+    private val chapterRepository: ChapterRepository,
 ) : PlayerController {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -75,6 +79,12 @@ internal class MediaControllerPlayerController @Inject constructor(
     private var controller: MediaController? = null
     private var ticker: Job? = null
 
+    // The stored chapters of the loaded episode; touched on the main thread only. They change
+    // when the loaded episode changes or its stored chapters do, never on a position tick.
+    private var chaptersEpisodeId: String? = null
+    private var chapters: List<Chapter> = emptyList()
+    private var chaptersJob: Job? = null
+
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             refresh()
@@ -86,6 +96,7 @@ internal class MediaControllerPlayerController @Inject constructor(
             if (this@MediaControllerPlayerController.controller === controller) {
                 this@MediaControllerPlayerController.controller = null
                 stopTicker()
+                trackChapters(null)
                 state.value = null
             }
             controller.release()
@@ -184,6 +195,23 @@ internal class MediaControllerPlayerController @Inject constructor(
                 Log.w(TAG, "Couldn't remember the speed", e)
             }
         }
+    }
+
+    override fun seekToChapter(index: Int) = enqueue { c ->
+        val chapter = chapters.getOrNull(index) ?: return@enqueue
+        if (c.currentMediaItem != null) c.seekTo(clampToEpisode(c, chapter.startMs))
+    }
+
+    override fun previousChapter() = enqueue { c ->
+        if (c.currentMediaItem == null) return@enqueue
+        val startMs = Chapters.previousStartMs(chapters, c.currentPosition) ?: return@enqueue
+        c.seekTo(clampToEpisode(c, startMs))
+    }
+
+    override fun nextChapter() = enqueue { c ->
+        if (c.currentMediaItem == null) return@enqueue
+        val startMs = Chapters.nextStartMs(chapters, c.currentPosition) ?: return@enqueue
+        c.seekTo(clampToEpisode(c, startMs))
     }
 
     override fun setSleepTimer(minutes: Int) = sleepTimers.setMinutes(minutes)
@@ -290,8 +318,41 @@ internal class MediaControllerPlayerController @Inject constructor(
 
     private fun refresh() {
         val c = controller
-        state.value = c?.let(EpisodeMediaItems::nowPlaying)
+        publish(c)
         if (c != null && c.isPlaying) startTicker() else stopTicker()
+    }
+
+    /** Publishes the player's state with the loaded episode's chapters. */
+    private fun publish(c: MediaController?) {
+        val playing = c?.let(EpisodeMediaItems::nowPlaying)
+        trackChapters(playing?.episodeId?.takeIf { it.isNotEmpty() })
+        state.value = playing?.copy(chapters = chapters)
+    }
+
+    /** Follows the stored chapters of [episodeId] (null = none loaded); a no-op if already doing so. */
+    private fun trackChapters(episodeId: String?) {
+        if (episodeId == chaptersEpisodeId) return
+        chaptersEpisodeId = episodeId
+        chapters = emptyList()
+        chaptersJob?.cancel()
+        chaptersJob = null
+        if (episodeId == null) return
+        chaptersJob = scope.launch {
+            try {
+                // Downloads them once if the feed names a chapters file; errors are swallowed.
+                withContext(Dispatchers.IO) { chapterRepository.ensureChapters(episodeId) }
+                chapterRepository.chapters(episodeId).collect { list ->
+                    if (chaptersEpisodeId != episodeId) return@collect
+                    chapters = list
+                    state.value = state.value?.takeIf { it.episodeId == episodeId }
+                        ?.copy(chapters = list) ?: state.value
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Couldn't load the chapters", e)
+            }
+        }
     }
 
     private fun startTicker() {
@@ -300,7 +361,7 @@ internal class MediaControllerPlayerController @Inject constructor(
             while (isActive) {
                 delay(TICK_MS)
                 val c = controller ?: break
-                state.value = EpisodeMediaItems.nowPlaying(c)
+                publish(c)
                 if (!c.isPlaying) break
             }
         }

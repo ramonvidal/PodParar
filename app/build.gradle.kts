@@ -45,6 +45,11 @@ android {
     }
     val signing = signingConfigs.findByName("podouvir") ?: signingConfigs.getByName("debug")
 
+    // Play must ship every language: the in-app language choice would break if it installed only the device's.
+    bundle {
+        language { enableSplit = false }
+    }
+
     buildTypes {
         debug {
             // Same key as releases, so either installs over the other without uninstalling.
@@ -66,6 +71,8 @@ dependencies {
     // Schedules the background refresh and gives WorkManager Hilt's worker factory.
     implementation(projects.core.data)
     implementation(projects.core.downloads)
+    // Wraps contexts with the in-app language.
+    implementation(projects.core.settings)
     // UpdateChannel, provided per distribution.
     implementation(projects.core.update)
     implementation(projects.feature.home)

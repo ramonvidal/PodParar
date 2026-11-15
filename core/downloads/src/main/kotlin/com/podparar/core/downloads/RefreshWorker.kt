@@ -9,6 +9,7 @@ import androidx.work.WorkerParameters
 import com.podparar.core.data.PodcastRepository
 import com.podparar.core.model.DownloadRules
 import com.podparar.core.model.Episode
+import com.podparar.core.settings.AppLocale
 import com.podparar.core.settings.DownloadSettings
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -59,8 +60,13 @@ internal class RefreshWorker @AssistedInject constructor(
 
     @Suppress("MissingPermission") // Checked by Notifications.canNotify before calling.
     private fun showNewEpisodes(newEpisodes: List<Episode>, showTitles: Map<String, String>) {
-        val context = applicationContext
-        val title = DownloadRules.newEpisodesTitle(newEpisodes.size) ?: return
+        if (newEpisodes.isEmpty()) return
+        val context = AppLocale.wrap(applicationContext)
+        val title = context.resources.getQuantityString(
+            R.plurals.downloads_new_episodes,
+            newEpisodes.size,
+            newEpisodes.size,
+        )
         Notifications.createNewEpisodesChannel(context)
         val lines = newEpisodes.sortedByDescending { it.pubDate }.take(MAX_LINES).map { episode ->
             context.getString(R.string.downloads_episode_line, showTitles[episode.podcastUrl].orEmpty(), episode.title)

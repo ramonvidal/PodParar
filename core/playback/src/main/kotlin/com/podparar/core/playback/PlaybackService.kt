@@ -1,6 +1,7 @@
 package com.podparar.core.playback
 
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.annotation.OptIn
@@ -29,6 +30,7 @@ import com.podparar.core.model.PlaybackSpeeds
 import com.podparar.core.model.Podcast
 import com.podparar.core.model.SkipLengths
 import com.podparar.core.model.SleepTimers
+import com.podparar.core.settings.AppLocale
 import com.podparar.core.settings.PlaybackSettings
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
@@ -74,6 +76,10 @@ import kotlinx.coroutines.withContext
 @OptIn(UnstableApi::class)
 @AndroidEntryPoint
 internal class PlaybackService : MediaLibraryService() {
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLocale.wrap(base))
+    }
 
     @Inject
     lateinit var episodes: EpisodeRepository

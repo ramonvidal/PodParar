@@ -38,6 +38,12 @@ object SleepTimers {
         return (remaining.toFloat() / FADE_MS).coerceIn(0f, 1f)
     }
 
+    /** Minutes left, rounded up, at least 1; null for end of episode / no end. */
+    fun minutesLeft(timer: SleepTimer, now: Long): Int? {
+        val remaining = timer.remainingMs(now) ?: return null
+        return max(1L, (remaining + MINUTE_MS - 1) / MINUTE_MS).toInt()
+    }
+
     /** "23 min" (ceil minutes, at least 1) for timed timers, "End of episode" otherwise. */
     fun label(timer: SleepTimer, now: Long): String {
         val remaining = timer.remainingMs(now) ?: return "End of episode"

@@ -38,4 +38,8 @@ internal object NetworkModule {
     @Provides
     @Singleton
     fun audioDownloader(client: OkHttpClient): AudioDownloader = OkHttpAudioDownloader(client)
+
+    @Provides
+    @Singleton
+    fun chapterSource(client: OkHttpClient): ChapterSource = OkHttpChapterSource(client)
 }

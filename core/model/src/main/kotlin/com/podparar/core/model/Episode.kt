@@ -19,6 +19,7 @@ data class Episode(
     val positionMs: Long = 0L,
     val played: Boolean = false,
     val lastPlayedAt: Long = 0L,
+    val chaptersUrl: String? = null,
 ) {
     /** Played wins; any saved position means it's under way. */
     val state: EpisodeState

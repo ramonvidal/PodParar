@@ -1,6 +1,7 @@
 package com.podparar.core.database
 
 import androidx.room.withTransaction
+import com.podparar.core.model.Chapter
 import com.podparar.core.model.Download
 import com.podparar.core.model.Episode
 import com.podparar.core.model.EpisodeWithPodcast
@@ -15,6 +16,7 @@ internal class RoomPodcastStore(private val db: PodPararDatabase) : PodcastStore
     private val episodeDao = db.episodeDao()
     private val queueDao = db.queueDao()
     private val downloadDao = db.downloadDao()
+    private val chapterDao = db.chapterDao()
 
     override fun observePodcasts(): Flow<List<Podcast>> =
         podcastDao.observeAll().map { list -> list.map { it.toModel() } }
@@ -63,6 +65,7 @@ internal class RoomPodcastStore(private val db: PodPararDatabase) : PodcastStore
         db.withTransaction {
             queueDao.deleteForPodcast(feedUrl)
             downloadDao.deleteForPodcast(feedUrl)
+            chapterDao.deleteForPodcast(feedUrl)
             episodeDao.deleteFor(feedUrl)
             podcastDao.delete(feedUrl)
         }
@@ -120,5 +123,20 @@ internal class RoomPodcastStore(private val db: PodPararDatabase) : PodcastStore
 
     override suspend fun deleteDownload(episodeId: String) {
         downloadDao.delete(episodeId)
+    }
+
+    override fun observeChapters(episodeId: String): Flow<List<Chapter>> =
+        chapterDao.observe(episodeId).map { rows -> rows.map { it.toModel() } }
+
+    override suspend fun chapters(episodeId: String): List<Chapter> =
+        chapterDao.chapters(episodeId).map { it.toModel() }
+
+    override suspend fun saveChapters(episodeId: String, chapters: List<Chapter>) {
+        db.withTransaction {
+            chapterDao.delete(episodeId)
+            if (chapters.isNotEmpty()) {
+                chapterDao.insertAll(chapters.mapIndexed { index, chapter -> chapter.toEntity(episodeId, index) })
+            }
+        }
     }
 }

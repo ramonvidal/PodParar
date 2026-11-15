@@ -25,6 +25,12 @@
     <string name="downloaded">Downloaded</string>
     <string name="downloading">Downloading</string>
     <string name="download_failed">Download failed</string>
+    <string name="download_cancel">Cancel download</string>
+    <string name="download_failed_retry">Download failed. Tap to try again</string>
+    <string name="remove_download_title">Remove this download?</string>
+    <string name="remove_download_body">The episode stays in your list, but you\'ll need internet to play it again.</string>
+    <string name="date_today">Today</string>
+    <string name="date_yesterday">Yesterday</string>
     <string name="settings">Settings</string>
     <string name="sleep_timer">Sleep timer</string>
     <string name="end_of_episode">End of episode</string>

@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.podparar.core.model.Chapter
 import com.podparar.core.model.Download
 import com.podparar.core.model.DownloadState
 import com.podparar.core.model.EpisodeWithPodcast
@@ -25,7 +26,8 @@ import org.robolectric.annotation.Config
 /**
  * Upgrading a v1 database (Phases 0-2) to v2 (adds the Up next queue) and a v2 database to v3 (adds downloads and
  * the per-show auto-download flag) keeps every show, episode, position and queue entry. A v3 database to v4 adds the
- * per-show speed (null for every existing show) and keeps every row.
+ * per-show speed (null for every existing show) and keeps every row. A v4 database to v5 adds episodes.chaptersUrl
+ * (null for every existing episode) and the chapters table.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
@@ -129,7 +131,7 @@ class PodPararDatabaseMigrationTest {
         helper.runMigrationsAndValidate(name, 2, true, MIGRATION_1_2).close()
 
         val room = Room.databaseBuilder(RuntimeEnvironment.getApplication(), PodPararDatabase::class.java, name)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .allowMainThreadQueries()
             .build()
         try {
@@ -263,7 +265,7 @@ class PodPararDatabaseMigrationTest {
         helper.runMigrationsAndValidate(name, 3, true, MIGRATION_2_3).close()
 
         val room = Room.databaseBuilder(RuntimeEnvironment.getApplication(), PodPararDatabase::class.java, name)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .allowMainThreadQueries()
             .build()
         try {
@@ -443,7 +445,7 @@ class PodPararDatabaseMigrationTest {
         helper.runMigrationsAndValidate(name, 4, true, MIGRATION_3_4).close()
 
         val room = Room.databaseBuilder(RuntimeEnvironment.getApplication(), PodPararDatabase::class.java, name)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .allowMainThreadQueries()
             .build()
         try {
@@ -511,7 +513,7 @@ class PodPararDatabaseMigrationTest {
         helper.runMigrationsAndValidate(name, 4, true, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).close()
 
         val room = Room.databaseBuilder(RuntimeEnvironment.getApplication(), PodPararDatabase::class.java, name)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .allowMainThreadQueries()
             .build()
         try {
@@ -524,5 +526,190 @@ class PodPararDatabaseMigrationTest {
         } finally {
             room.close()
         }
+    }
+
+    // --- 4 -> 5: episodes.chaptersUrl and the chapters table ---
+
+    private fun createV4() {
+        helper.createDatabase(name, 4).apply {
+            insert(
+                "podcasts",
+                SQLiteDatabase.CONFLICT_FAIL,
+                ContentValues().apply {
+                    put("feedUrl", feedUrl)
+                    put("title", "Show A")
+                    put("author", "Author A")
+                    put("description", "About A")
+                    put("artworkUrl", "https://img.example/a.jpg")
+                    put("lastRefreshed", 1_000L)
+                    put("autoDownload", 1)
+                    put("speed", 1.5f)
+                },
+            )
+            insert("episodes", SQLiteDatabase.CONFLICT_FAIL, episodeRow(episodeId, "Episode one", 2_000L, 754_000L, false, 5_000L))
+            insert("episodes", SQLiteDatabase.CONFLICT_FAIL, episodeRow(otherId, "Episode two", 1_500L, 0L, true, 4_000L))
+            insert("queue", SQLiteDatabase.CONFLICT_FAIL, ContentValues().apply {
+                put("episodeId", otherId)
+                put("position", 0)
+            })
+            insert("downloads", SQLiteDatabase.CONFLICT_FAIL, ContentValues().apply {
+                put("episodeId", episodeId)
+                put("state", "DONE")
+                put("filePath", "/files/episodes/one.audio")
+                put("bytesDownloaded", 1_000L)
+                put("totalBytes", 1_000L)
+                put("updatedAt", 9_000L)
+            })
+            close()
+        }
+    }
+
+    @Test
+    fun `migrating 4 to 5 validates against the v5 schema, keeps the rows and leaves chaptersUrl null`() {
+        createV4()
+
+        val db = helper.runMigrationsAndValidate(name, 5, true, MIGRATION_4_5)
+
+        db.query("SELECT title, autoDownload, speed FROM podcasts WHERE feedUrl = ?", arrayOf(feedUrl)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("Show A", c.getString(0))
+            assertEquals(1, c.getInt(1))
+            assertEquals(1.5f, c.getFloat(2), 0.0001f)
+        }
+        db.query("SELECT title, positionMs, played, lastPlayedAt, chaptersUrl FROM episodes WHERE id = ?", arrayOf(episodeId)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("Episode one", c.getString(0))
+            assertEquals(754_000L, c.getLong(1))
+            assertEquals(0, c.getInt(2))
+            assertEquals(5_000L, c.getLong(3))
+            assertTrue(c.isNull(4))
+        }
+        db.query("SELECT played, chaptersUrl FROM episodes WHERE id = ?", arrayOf(otherId)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(1, c.getInt(0))
+            assertTrue(c.isNull(1))
+        }
+        db.query("SELECT episodeId FROM queue").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(otherId, c.getString(0))
+            assertFalse(c.moveToNext())
+        }
+        db.query("SELECT state FROM downloads WHERE episodeId = ?", arrayOf(episodeId)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("DONE", c.getString(0))
+        }
+        db.query("SELECT COUNT(*) FROM chapters").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(0, c.getInt(0))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `after the 4 to 5 migration the chapters table and chaptersUrl take rows`() {
+        createV4()
+
+        val db = helper.runMigrationsAndValidate(name, 5, true, MIGRATION_4_5)
+        db.insert("chapters", SQLiteDatabase.CONFLICT_FAIL, ContentValues().apply {
+            put("episodeId", episodeId)
+            put("position", 0)
+            put("startMs", 0L)
+            put("title", "Intro")
+            putNull("imageUrl")
+            putNull("url")
+        })
+        db.insert("chapters", SQLiteDatabase.CONFLICT_FAIL, ContentValues().apply {
+            put("episodeId", episodeId)
+            put("position", 1)
+            put("startMs", 60_000L)
+            put("title", "Main")
+            put("imageUrl", "https://img.example/main.jpg")
+            put("url", "https://example.com/main")
+        })
+        db.update("episodes", SQLiteDatabase.CONFLICT_FAIL, ContentValues().apply { put("chaptersUrl", "https://a.example/c.json") }, "id = ?", arrayOf(episodeId))
+
+        db.query("SELECT position, startMs, title, imageUrl, url FROM chapters WHERE episodeId = ? ORDER BY position", arrayOf(episodeId)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(0, c.getInt(0))
+            assertEquals("Intro", c.getString(2))
+            assertTrue(c.isNull(3))
+            assertTrue(c.isNull(4))
+            assertTrue(c.moveToNext())
+            assertEquals(60_000L, c.getLong(1))
+            assertEquals("https://img.example/main.jpg", c.getString(3))
+            assertEquals("https://example.com/main", c.getString(4))
+            assertFalse(c.moveToNext())
+        }
+        db.query("SELECT chaptersUrl FROM episodes WHERE id = ?", arrayOf(episodeId)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("https://a.example/c.json", c.getString(0))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `the 4 to 5 migrated database opens with Room and the store reads and saves chapters`() = runTest {
+        createV4()
+        helper.runMigrationsAndValidate(name, 5, true, MIGRATION_4_5).close()
+
+        val room = Room.databaseBuilder(RuntimeEnvironment.getApplication(), PodPararDatabase::class.java, name)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            val store: PodcastStore = RoomPodcastStore(room)
+
+            val episode = store.episode(episodeId)!!
+            assertEquals("Episode one", episode.title)
+            assertEquals(754_000L, episode.positionMs)
+            assertNull(episode.chaptersUrl)
+            assertEquals(emptyList<Chapter>(), store.chapters(episodeId))
+
+            val chapters = listOf(Chapter(0, "Intro"), Chapter(60_000, "Main", "https://img.example/m.jpg", "https://example.com/m"))
+            store.saveChapters(episodeId, chapters)
+            assertEquals(chapters, store.chapters(episodeId))
+            assertEquals(chapters, store.observeChapters(episodeId).first())
+
+            // A refresh after the upgrade takes the new url and keeps progress and chapters.
+            val show = store.podcast(feedUrl)!!
+            store.saveFeed(ParsedFeed(show, listOf(episode.copy(positionMs = 0L, chaptersUrl = "https://a.example/c.json"))))
+            val refreshed = store.episode(episodeId)!!
+            assertEquals("https://a.example/c.json", refreshed.chaptersUrl)
+            assertEquals(754_000L, refreshed.positionMs)
+            assertEquals(chapters, store.chapters(episodeId))
+
+            store.deletePodcast(feedUrl)
+            assertEquals(emptyList<Chapter>(), store.chapters(episodeId))
+        } finally {
+            room.close()
+        }
+    }
+
+    @Test
+    fun `a v1 database upgrades all the way to v5`() {
+        createV1()
+
+        val db = helper.runMigrationsAndValidate(name, 5, true, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+
+        db.query("SELECT title, autoDownload, speed FROM podcasts WHERE feedUrl = ?", arrayOf(feedUrl)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("Show A", c.getString(0))
+            assertEquals(0, c.getInt(1))
+            assertTrue(c.isNull(2))
+        }
+        db.query("SELECT positionMs, chaptersUrl FROM episodes WHERE id = ?", arrayOf(episodeId)).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(754_000L, c.getLong(0))
+            assertTrue(c.isNull(1))
+        }
+        db.query("SELECT COUNT(*) FROM episodes").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(2, c.getInt(0))
+        }
+        db.query("SELECT COUNT(*) FROM chapters").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(0, c.getInt(0))
+        }
+        db.close()
     }
 }

@@ -3,11 +3,13 @@ package com.podparar.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.podparar.core.data.PodcastRepository
+import com.podparar.core.model.AppLanguage
 import com.podparar.core.model.ImportResult
 import com.podparar.core.model.LoadError
 import com.podparar.core.model.Opml
 import com.podparar.core.model.PodcastException
 import com.podparar.core.settings.DownloadSettings
+import com.podparar.core.settings.LanguageSettings
 import com.podparar.core.settings.PlaybackSettings
 import com.podparar.core.update.UpdateRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -66,6 +68,7 @@ class SettingsViewModel @Inject constructor(
     private val downloads: DownloadSettings,
     private val repository: PodcastRepository,
     private val updates: UpdateRepository,
+    private val languages: LanguageSettings,
 ) : ViewModel() {
 
     private val opmlStatus = MutableStateFlow<OpmlStatus?>(null)
@@ -78,6 +81,9 @@ class SettingsViewModel @Inject constructor(
     ) { (back, forward), (silence, shake), nextPreviousSkip, (wifi, alerts) ->
         StoredSettings(back, forward, silence, shake, nextPreviousSkip, wifi, alerts)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    internal val language: StateFlow<AppLanguage> =
+        languages.language.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppLanguage.SYSTEM)
 
     internal val opml: StateFlow<OpmlStatus?> = opmlStatus
 
@@ -100,6 +106,14 @@ class SettingsViewModel @Inject constructor(
             } catch (e: Exception) {
                 UpdateCheck.Failed
             }
+        }
+    }
+
+    /** Stores the in-app language, then calls [onDone] (the screen recreates its activity so the language applies at once). */
+    fun setLanguage(language: AppLanguage, onDone: () -> Unit) {
+        viewModelScope.launch {
+            languages.setLanguage(language)
+            onDone()
         }
     }
 

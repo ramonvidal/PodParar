@@ -34,3 +34,18 @@ internal val MIGRATION_3_4 = object : Migration(3, 4) {
         db.execSQL("ALTER TABLE `podcasts` ADD COLUMN `speed` REAL")
     }
 }
+
+/**
+ * Version 5 adds each episode's chapters file address and the chapters table.
+ * The SQL matches what Room generates for EpisodeEntity.chaptersUrl and ChapterEntity.
+ */
+internal val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `episodes` ADD COLUMN `chaptersUrl` TEXT")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `chapters` (`episodeId` TEXT NOT NULL, `position` INTEGER NOT NULL, " +
+                "`startMs` INTEGER NOT NULL, `title` TEXT NOT NULL, `imageUrl` TEXT, `url` TEXT, " +
+                "PRIMARY KEY(`episodeId`, `position`))",
+        )
+    }
+}

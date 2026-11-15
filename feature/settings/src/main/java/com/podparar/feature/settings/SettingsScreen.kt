@@ -1,6 +1,8 @@
 package com.podparar.feature.settings
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
@@ -23,6 +25,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -42,6 +45,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.podparar.core.model.AppLanguage
 import com.podparar.core.model.SkipLengths
 import com.podparar.core.ui.R as CoreUiR
 import java.io.IOException
@@ -62,6 +66,7 @@ internal data class SettingsUiState(
     val updateCheck: UpdateCheck = UpdateCheck.Idle,
     /** False in builds the store updates: the About card has no "Check for updates" row. */
     val showUpdateCheck: Boolean = true,
+    val language: AppLanguage = AppLanguage.SYSTEM,
 )
 
 private const val EXPORT_FILE_NAME = "podparar-subscriptions.opml"
@@ -75,6 +80,7 @@ internal fun SettingsScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val opml by viewModel.opml.collectAsStateWithLifecycle()
     val updateCheck by viewModel.updateCheck.collectAsStateWithLifecycle()
+    val language by viewModel.language.collectAsStateWithLifecycle()
     val appVersion = remember(context) { context.appVersion() }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -103,6 +109,7 @@ internal fun SettingsScreen(
         appVersion = appVersion,
         updateCheck = updateCheck,
         showUpdateCheck = viewModel.showUpdateCheck,
+        language = language,
     ).let { base ->
         if (stored == null) {
             base
@@ -131,7 +138,16 @@ internal fun SettingsScreen(
         onExportOpml = { exportLauncher.launch(EXPORT_FILE_NAME) },
         onCheckForUpdates = viewModel::checkForUpdates,
         onNextPreviousSkipChange = viewModel::setNextPreviousSkip,
+        onLanguageChange = { choice ->
+            viewModel.setLanguage(choice) { context.findActivity()?.recreate() }
+        },
     )
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 private fun Context.appVersion(): String =
@@ -184,6 +200,7 @@ internal fun SettingsContent(
     modifier: Modifier = Modifier,
     onCheckForUpdates: () -> Unit = {},
     onNextPreviousSkipChange: (Boolean) -> Unit = {},
+    onLanguageChange: (AppLanguage) -> Unit = {},
 ) {
     Column(modifier.fillMaxSize()) {
         TopAppBar(
@@ -198,6 +215,28 @@ internal fun SettingsContent(
                 .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            Group(stringResource(R.string.settings_language)) {
+                LanguageRow(
+                    title = stringResource(R.string.settings_language_auto),
+                    hint = stringResource(R.string.settings_language_auto_hint),
+                    selected = state.language == AppLanguage.SYSTEM,
+                    onClick = { onLanguageChange(AppLanguage.SYSTEM) },
+                )
+                RowDivider()
+                LanguageRow(
+                    title = stringResource(R.string.settings_language_english),
+                    hint = null,
+                    selected = state.language == AppLanguage.ENGLISH,
+                    onClick = { onLanguageChange(AppLanguage.ENGLISH) },
+                )
+                RowDivider()
+                LanguageRow(
+                    title = stringResource(R.string.settings_language_baianes),
+                    hint = null,
+                    selected = state.language == AppLanguage.BAIANES,
+                    onClick = { onLanguageChange(AppLanguage.BAIANES) },
+                )
+            }
             Group(stringResource(R.string.settings_playback)) {
                 SkipChoice(
                     title = stringResource(R.string.settings_skip_back),
@@ -378,6 +417,27 @@ private fun SkipChoice(title: String, options: List<Long>, selected: Long, onSel
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                     label = { Text(stringResource(R.string.settings_seconds, (ms / 1000).toInt())) },
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageRow(title: String, hint: String?, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.RadioButton, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        // The whole row selects, so the radio button itself takes no separate tap.
+        RadioButton(selected = selected, onClick = null)
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            if (hint != null) {
+                Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

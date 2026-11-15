@@ -10,13 +10,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,8 +27,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.podparar.core.model.Download
@@ -79,8 +85,18 @@ fun EpisodeRow(
     onRemoveDownload: (() -> Unit)? = null,
     onOpenPodcast: (() -> Unit)? = null,
 ) {
-    val dateLabel = remember(episode.pubDate, now) {
-        Formats.pubDateLabel(episode.pubDate, now, ZoneId.systemDefault())
+    val locale = LocalConfiguration.current.locales[0]
+    val today = stringResource(R.string.date_today)
+    val yesterday = stringResource(R.string.date_yesterday)
+    val dateLabel = remember(episode.pubDate, now, locale, today, yesterday) {
+        Formats.pubDateLabel(
+            episode.pubDate,
+            now,
+            ZoneId.systemDefault(),
+            locale = locale,
+            today = today,
+            yesterday = yesterday,
+        )
     }
     val topLine = when {
         podcastTitle.isNullOrEmpty() -> dateLabel
@@ -201,6 +217,9 @@ fun EpisodeRow(
                         }
                     }
                 }
+                if (onDownload != null || onRemoveDownload != null) {
+                    DownloadButton(download, onDownload, onRemoveDownload)
+                }
                 FilledTonalIconButton(onClick = onClick) {
                     Icon(
                         painter = painterResource(if (showsPause) R.drawable.ic_pause else R.drawable.ic_play_arrow),
@@ -223,6 +242,82 @@ fun EpisodeRow(
                 )
             }
         }
+    }
+}
+
+/**
+ * The trailing download control: a download arrow, a progress circle that cancels, a tick that
+ * asks before removing, or an error mark that retries, by the state of [download].
+ */
+@Composable
+private fun DownloadButton(
+    download: Download?,
+    onDownload: (() -> Unit)?,
+    onRemoveDownload: (() -> Unit)?,
+) {
+    var confirmRemove by remember { mutableStateOf(false) }
+    val primary = MaterialTheme.colorScheme.primary
+    when (download?.state) {
+        null -> IconButton(onClick = { onDownload?.invoke() }, modifier = Modifier.size(40.dp)) {
+            Icon(
+                painter = painterResource(R.drawable.ic_download),
+                contentDescription = stringResource(R.string.download),
+            )
+        }
+        DownloadState.QUEUED, DownloadState.RUNNING -> IconButton(
+            onClick = { onRemoveDownload?.invoke() },
+            modifier = Modifier.size(40.dp),
+        ) {
+            val description = stringResource(R.string.download_cancel)
+            val progress = download?.progress ?: 0f
+            if (progress > 0f) {
+                CircularProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.size(24.dp).semantics { contentDescription = description },
+                    color = primary,
+                    strokeWidth = 2.dp,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    gapSize = 0.dp,
+                )
+            } else {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp).semantics { contentDescription = description },
+                    color = primary,
+                    strokeWidth = 2.dp,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+            }
+        }
+        DownloadState.DONE -> IconButton(onClick = { confirmRemove = true }, modifier = Modifier.size(40.dp)) {
+            Icon(
+                painter = painterResource(R.drawable.ic_download_done),
+                contentDescription = stringResource(R.string.downloaded),
+                tint = primary,
+            )
+        }
+        DownloadState.FAILED -> IconButton(onClick = { onDownload?.invoke() }, modifier = Modifier.size(40.dp)) {
+            Icon(
+                painter = painterResource(R.drawable.ic_error),
+                contentDescription = stringResource(R.string.download_failed_retry),
+                tint = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+    if (confirmRemove) {
+        AlertDialog(
+            onDismissRequest = { confirmRemove = false },
+            title = { Text(stringResource(R.string.remove_download_title)) },
+            text = { Text(stringResource(R.string.remove_download_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmRemove = false
+                    onRemoveDownload?.invoke()
+                }) { Text(stringResource(R.string.remove_download)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRemove = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
     }
 }
 

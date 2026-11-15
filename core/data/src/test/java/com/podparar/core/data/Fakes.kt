@@ -1,6 +1,7 @@
 package com.podparar.core.data
 
 import com.podparar.core.database.PodcastStore
+import com.podparar.core.model.Chapter
 import com.podparar.core.model.Download
 import com.podparar.core.model.Episode
 import com.podparar.core.model.EpisodeWithPodcast
@@ -11,6 +12,7 @@ import com.podparar.core.model.Podcast
 import com.podparar.core.model.PodcastException
 import com.podparar.core.model.SearchResult
 import com.podparar.core.network.AudioDownloader
+import com.podparar.core.network.ChapterSource
 import com.podparar.core.network.FeedSource
 import com.podparar.core.network.PodcastDirectory
 import kotlinx.coroutines.delay
@@ -161,6 +163,7 @@ internal class FakePodcastStore : PodcastStore {
             episodes.value = episodes.value - feedUrl
             queue.value = queue.value.filterNot { it in gone }
             downloadRows.value = downloadRows.value - gone
+            chapterRows.value = chapterRows.value - gone
         }
     }
 
@@ -265,6 +268,30 @@ internal class FakePodcastStore : PodcastStore {
         }
     }
 
+    // --- Chapters ---
+
+    private val chapterRows = MutableStateFlow<Map<String, List<Chapter>>>(emptyMap())
+
+    /** Every saveChapters call, e.g. "saveChapters(id, 3)". */
+    val chapterCalls = mutableListOf<String>()
+
+    /** Puts chapters in the store without counting it as a save. */
+    fun seedChapters(episodeId: String, chapters: List<Chapter>) {
+        chapterRows.value = chapterRows.value + (episodeId to chapters)
+    }
+
+    override fun observeChapters(episodeId: String): Flow<List<Chapter>> =
+        chapterRows.map { it[episodeId].orEmpty() }
+
+    override suspend fun chapters(episodeId: String): List<Chapter> = chapterRows.value[episodeId].orEmpty()
+
+    override suspend fun saveChapters(episodeId: String, chapters: List<Chapter>) {
+        synchronized(this) {
+            chapterCalls += "saveChapters($episodeId, ${chapters.size})"
+            chapterRows.value = if (chapters.isEmpty()) chapterRows.value - episodeId else chapterRows.value + (episodeId to chapters)
+        }
+    }
+
     private val downloadRows = MutableStateFlow<Map<String, Download>>(emptyMap())
 
     /** Every row written with upsertDownload, in order. */
@@ -319,5 +346,18 @@ internal class FakeAudioDownloader : AudioDownloader {
                 onStep(done.toLong())
             }
         }
+    }
+}
+
+/** Returns the chapters set for a URL (empty if none), or fails as told. */
+internal class FakeChapterSource : ChapterSource {
+    val fetched = mutableListOf<String>()
+    val chapters = mutableMapOf<String, List<Chapter>>()
+    val failures = mutableMapOf<String, Throwable>()
+
+    override suspend fun fetch(url: String): List<Chapter> {
+        synchronized(this) { fetched += url }
+        failures[url]?.let { throw it }
+        return chapters[url].orEmpty()
     }
 }
