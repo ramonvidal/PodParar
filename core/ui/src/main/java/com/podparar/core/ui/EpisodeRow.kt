@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -27,7 +28,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -122,7 +126,18 @@ fun EpisodeRow(
     )
     val menuLabel = menuLabelRes?.let { stringResource(it) }
 
-    Card(modifier = modifier.fillMaxWidth()) {
+    val isDownloading = download?.state == DownloadState.QUEUED || download?.state == DownloadState.RUNNING
+    val normalContainer = CardDefaults.cardColors().containerColor
+    val cardColors = if (isDownloading) {
+        CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                .compositeOver(normalContainer),
+        )
+    } else {
+        CardDefaults.cardColors()
+    }
+
+    Card(modifier = modifier.fillMaxWidth(), colors = cardColors) {
         Box {
             Row(
                 modifier = Modifier
@@ -227,6 +242,26 @@ fun EpisodeRow(
                     )
                 }
             }
+            if (isDownloading) {
+                val barModifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp)
+                val barProgress = download?.progress ?: 0f
+                if (barProgress > 0f) {
+                    LinearProgressIndicator(
+                        progress = { barProgress },
+                        modifier = barModifier,
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = Color.Transparent,
+                        gapSize = 0.dp,
+                        drawStopIndicator = {},
+                    )
+                } else {
+                    LinearProgressIndicator(
+                        modifier = barModifier,
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = Color.Transparent,
+                    )
+                }
+            }
             if (menuLabel != null) {
                 EpisodeActionsMenu(
                     expanded = menuOpen,
@@ -273,17 +308,17 @@ private fun DownloadButton(
             if (progress > 0f) {
                 CircularProgressIndicator(
                     progress = { progress },
-                    modifier = Modifier.size(24.dp).semantics { contentDescription = description },
+                    modifier = Modifier.size(28.dp).semantics { contentDescription = description },
                     color = primary,
-                    strokeWidth = 2.dp,
+                    strokeWidth = 3.dp,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                     gapSize = 0.dp,
                 )
             } else {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp).semantics { contentDescription = description },
+                    modifier = Modifier.size(28.dp).semantics { contentDescription = description },
                     color = primary,
-                    strokeWidth = 2.dp,
+                    strokeWidth = 3.dp,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
             }
@@ -335,7 +370,7 @@ private fun DownloadStatus(download: Download) {
                 painter = painterResource(R.drawable.ic_download_done),
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = color,
+                tint = MaterialTheme.colorScheme.primary,
             )
             DownloadState.FAILED -> Icon(
                 painter = painterResource(R.drawable.ic_error),
@@ -364,16 +399,27 @@ private fun DownloadStatus(download: Download) {
                 }
             }
         }
-        Text(
+        val active = download.state == DownloadState.QUEUED || download.state == DownloadState.RUNNING
+        val emphasised = active || download.state == DownloadState.DONE
+        val label = if (active && download.progress > 0f) {
+            stringResource(
+                R.string.downloading_percent,
+                (download.progress * 100).toInt().coerceIn(0, 100),
+            )
+        } else {
             stringResource(
                 when (download.state) {
                     DownloadState.DONE -> R.string.downloaded
                     DownloadState.FAILED -> R.string.download_failed
                     DownloadState.QUEUED, DownloadState.RUNNING -> R.string.downloading
                 },
-            ),
+            )
+        }
+        Text(
+            label,
             style = MaterialTheme.typography.labelMedium,
-            color = color,
+            color = if (emphasised) MaterialTheme.colorScheme.primary else color,
+            fontWeight = if (emphasised) FontWeight.SemiBold else null,
         )
     }
 }
