@@ -2,11 +2,15 @@ package com.podparar.core.downloads
 
 import com.podparar.core.model.Download
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 /** Episode downloads for the screens: what's downloaded, and asking for or removing one. */
 interface EpisodeDownloads {
     /** Every download row, keyed by episode id. */
     val downloads: Flow<Map<String, Download>>
+
+    /** Emits the current download limit each time a user's request was refused because the limit is reached. */
+    val limitReached: Flow<Int> get() = emptyFlow()
 
     /** Queues a download (unique work "download-<id>", KEEP), on unmetered networks when wifiOnly, else any network. */
     fun download(episodeId: String)

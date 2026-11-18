@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -31,10 +32,13 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -46,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.podparar.core.model.AppLanguage
+import com.podparar.core.model.DownloadLimit
 import com.podparar.core.model.SkipLengths
 import com.podparar.core.ui.R as CoreUiR
 import java.io.IOException
@@ -59,6 +64,7 @@ internal data class SettingsUiState(
     val shakeToExtend: Boolean = true,
     val wifiOnly: Boolean = true,
     val newEpisodeAlerts: Boolean = true,
+    val maxDownloads: Int = DownloadLimit.DEFAULT,
     /** The outcome of the last OPML import or export, e.g. "Added 12 shows, 3 already followed, 1 failed". */
     val opmlMessage: String? = null,
     val opmlBusy: Boolean = false,
@@ -122,6 +128,7 @@ internal fun SettingsScreen(
                 shakeToExtend = stored.shakeToExtend,
                 wifiOnly = stored.wifiOnly,
                 newEpisodeAlerts = stored.newEpisodeAlerts,
+                maxDownloads = stored.maxDownloads,
             )
         }
     }
@@ -134,6 +141,7 @@ internal fun SettingsScreen(
         onShakeToExtendChange = viewModel::setShakeToExtend,
         onWifiOnlyChange = viewModel::setWifiOnly,
         onNewEpisodeAlertsChange = viewModel::setNewEpisodeAlerts,
+        onMaxDownloadsChange = viewModel::setMaxDownloads,
         onImportOpml = { importLauncher.launch(OPML_MIME_TYPES) },
         onExportOpml = { exportLauncher.launch(EXPORT_FILE_NAME) },
         onCheckForUpdates = viewModel::checkForUpdates,
@@ -201,7 +209,19 @@ internal fun SettingsContent(
     onCheckForUpdates: () -> Unit = {},
     onNextPreviousSkipChange: (Boolean) -> Unit = {},
     onLanguageChange: (AppLanguage) -> Unit = {},
+    onMaxDownloadsChange: (Int) -> Unit = {},
 ) {
+    var showMaxDownloads by remember { mutableStateOf(false) }
+    if (showMaxDownloads) {
+        MaxDownloadsDialog(
+            current = state.maxDownloads,
+            onSelect = {
+                onMaxDownloadsChange(it)
+                showMaxDownloads = false
+            },
+            onDismiss = { showMaxDownloads = false },
+        )
+    }
     Column(modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text(stringResource(CoreUiR.string.settings)) },
@@ -286,6 +306,13 @@ internal fun SettingsContent(
                     hint = stringResource(R.string.settings_new_episode_alerts_hint),
                     checked = state.newEpisodeAlerts,
                     onChange = onNewEpisodeAlertsChange,
+                )
+                RowDivider()
+                ValueRow(
+                    title = stringResource(R.string.settings_max_downloads),
+                    hint = stringResource(R.string.settings_max_downloads_hint),
+                    value = stringResource(R.string.settings_max_downloads_value, state.maxDownloads),
+                    onClick = { showMaxDownloads = true },
                 )
             }
             Group(stringResource(R.string.settings_your_shows)) {
@@ -420,6 +447,44 @@ private fun SkipChoice(title: String, options: List<Long>, selected: Long, onSel
             }
         }
     }
+}
+
+@Composable
+private fun ValueRow(title: String, hint: String, value: String, onClick: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.bodyLarge)
+        Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+    }
+}
+
+/** A radio list of [DownloadLimit.OPTIONS], plus [current] when it is not one of them (e.g. set by an older version). */
+@Composable
+private fun MaxDownloadsDialog(current: Int, onSelect: (Int) -> Unit, onDismiss: () -> Unit) {
+    val options = remember(current) { (DownloadLimit.OPTIONS + current).distinct().sorted() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_max_downloads)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                options.forEach { value ->
+                    LanguageRow(
+                        title = stringResource(R.string.settings_max_downloads_value, value),
+                        hint = null,
+                        selected = value == current,
+                        onClick = { onSelect(value) },
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) } },
+    )
 }
 
 @Composable

@@ -17,6 +17,9 @@
     <string name="settings_downloads">Downloads</string>
     <string name="settings_wifi_only">Wi-Fi only</string>
     <string name="settings_wifi_only_hint">Download episodes only on Wi-Fi</string>
+    <string name="settings_max_downloads">Downloaded episodes limit</string>
+    <string name="settings_max_downloads_hint">The most episodes kept downloaded at once. At the limit, new downloads are blocked until you remove some.</string>
+    <string name="settings_max_downloads_value">%d episodes</string>
     <string name="settings_new_episode_alerts">New episode alerts</string>
     <string name="settings_new_episode_alerts_hint">A notification when shows you follow have new episodes</string>
     <string name="settings_your_shows">Your shows</string>

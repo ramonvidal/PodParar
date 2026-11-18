@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.podparar.core.data.DownloadRepository
 import com.podparar.core.model.Download
+import com.podparar.core.model.DownloadLimit
 import com.podparar.core.model.DownloadState
 import com.podparar.core.settings.DownloadSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -21,9 +22,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -47,6 +51,9 @@ internal class WorkManagerEpisodeDownloads @Inject constructor(
 
     override val downloads: Flow<Map<String, Download>> = repository.downloads
 
+    private val limitReachedEvents = MutableSharedFlow<Int>(extraBuffer = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    override val limitReached: Flow<Int> = limitReachedEvents.asSharedFlow()
+
     override fun download(episodeId: String) {
         // UNDISPATCHED + a fair mutex keep calls in the order they were made (a quick download-then-remove stays removed).
         scope.launch(start = CoroutineStart.UNDISPATCHED) { mutex.withLock { enqueueLocked(episodeId) } }
@@ -67,12 +74,23 @@ internal class WorkManagerEpisodeDownloads @Inject constructor(
 
     /** For the refresh worker's auto-downloads: same as [download], but waits until the work is enqueued. */
     suspend fun enqueue(episodeId: String) {
-        mutex.withLock { enqueueLocked(episodeId) }
+        mutex.withLock { enqueueLocked(episodeId, userRequest = false) }
     }
 
-    private suspend fun enqueueLocked(episodeId: String) {
+    private suspend fun enqueueLocked(episodeId: String, userRequest: Boolean) {
         val existing = repository.get(episodeId)
         if (existing?.state == DownloadState.DONE && existing.filePath?.let { File(it).exists() } == true) return
+        // Queued, running and done rows already hold a slot; a new or failed one needs a free slot.
+        val holdsSlot = existing != null && existing.state != DownloadState.FAILED
+        if (!holdsSlot) {
+            val limit = settings.maxDownloads.first()
+            val used = repository.all().count { it.state != DownloadState.FAILED }
+            if (DownloadLimit.isReached(used, limit)) {
+                // Block and warn: nothing is enqueued, nothing already downloaded is touched. Auto-downloads skip silently.
+                if (userRequest) limitReachedEvents.tryEmit(limit)
+                return
+            }
+        }
         // A download under way keeps its progress; KEEP below leaves its work alone.
         if (existing?.state != DownloadState.RUNNING) repository.markQueued(episodeId)
         val network = if (settings.wifiOnly.first()) NetworkType.UNMETERED else NetworkType.CONNECTED

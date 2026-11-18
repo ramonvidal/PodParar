@@ -36,4 +36,5 @@
     <string name="settings">Ajustes</string>
     <string name="sleep_timer">Temporizador de sono</string>
     <string name="end_of_episode">Fim do episódio</string>
+    <string name="download_limit_reached">Eita, bateu o limite de %1$d downloads. Apaga algum ou aumenta o limite nos Ajustes.</string>
 </resources>

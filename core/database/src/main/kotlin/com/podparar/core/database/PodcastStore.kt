@@ -62,8 +62,11 @@ interface PodcastStore {
     /** played = 0 AND positionMs > 0, by lastPlayedAt DESC, at most [limit]. */
     fun observeInProgress(limit: Int): Flow<List<EpisodeWithPodcast>>
 
-    /** played = 0 AND positionMs = 0, by pubDate DESC, at most [limit]. */
-    fun observeNewEpisodes(limit: Int): Flow<List<EpisodeWithPodcast>>
+    /**
+     * played = 0 AND positionMs = 0, and published at or after [sinceMs] (epoch ms) or with no date
+     * (pubDate <= 0) or downloaded (state DONE), by pubDate DESC, at most [limit].
+     */
+    fun observeNewEpisodes(limit: Int, sinceMs: Long): Flow<List<EpisodeWithPodcast>>
 
     /** Every episode of that show: played = 1, positionMs = 0. */
     suspend fun markAllPlayed(feedUrl: String)

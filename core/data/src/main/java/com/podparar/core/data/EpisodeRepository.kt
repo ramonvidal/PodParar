@@ -26,7 +26,10 @@ interface EpisodeRepository {
     /** In-progress episodes for "Continue listening" (store.observeInProgress(10)). */
     val continueListening: Flow<List<EpisodeWithPodcast>>
 
-    /** Unplayed, unstarted episodes for "New episodes" (store.observeNewEpisodes(50)). */
+    /**
+     * Unplayed, unstarted episodes for "New episodes", at most 50: published within the last calendar month
+     * (EpisodeAge.cutoffMs, recomputed on each collection), undated, or downloaded.
+     */
     val newEpisodes: Flow<List<EpisodeWithPodcast>>
 
     /** Marks every episode of that show played (positions back to 0). */

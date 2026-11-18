@@ -1,5 +1,6 @@
 package com.podparar.core.data
 
+import com.podparar.core.model.EpisodeAge
 import com.podparar.core.model.EpisodeWithPodcast
 import java.time.Clock
 import java.time.Instant
@@ -58,6 +59,32 @@ class DefaultEpisodeRepositoryHomeTest {
         assertEquals(listOf(50), store.newEpisodesLimits)
         assertEquals(listOf(recent.id, old.id), items.map { it.episode.id })
         assertEquals(listOf("B", "A"), items.map { it.podcastTitle })
+    }
+
+    @Test
+    fun `newEpisodes asks the store for the one-month cutoff of the clock`() = runTest {
+        repository.newEpisodes.first()
+
+        assertEquals(listOf(EpisodeAge.cutoffMs(now)), store.newEpisodesSinces)
+    }
+
+    @Test
+    fun `newEpisodes recomputes the cutoff on each collection`() = runTest {
+        var current = now
+        val moving = object : Clock() {
+            override fun getZone() = ZoneOffset.UTC
+            override fun withZone(zone: java.time.ZoneId?): Clock = this
+            override fun instant(): Instant = Instant.ofEpochMilli(current)
+        }
+        val repo = DefaultEpisodeRepository(store, moving)
+
+        repo.newEpisodes.first()
+        current = now + 10 * 86_400_000L
+        repo.newEpisodes.first()
+
+        assertEquals(listOf(50, 50), store.newEpisodesLimits)
+        assertEquals(listOf(EpisodeAge.cutoffMs(now), EpisodeAge.cutoffMs(current)), store.newEpisodesSinces)
+        assertTrue(store.newEpisodesSinces[1] > store.newEpisodesSinces[0])
     }
 
     @Test

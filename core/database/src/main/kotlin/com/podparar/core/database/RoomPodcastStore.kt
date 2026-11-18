@@ -103,8 +103,8 @@ internal class RoomPodcastStore(private val db: PodPararDatabase) : PodcastStore
     override fun observeInProgress(limit: Int): Flow<List<EpisodeWithPodcast>> =
         episodeDao.observeInProgress(limit).map { rows -> rows.map { it.toModel() } }
 
-    override fun observeNewEpisodes(limit: Int): Flow<List<EpisodeWithPodcast>> =
-        episodeDao.observeNew(limit).map { rows -> rows.map { it.toModel() } }
+    override fun observeNewEpisodes(limit: Int, sinceMs: Long): Flow<List<EpisodeWithPodcast>> =
+        episodeDao.observeNew(limit, sinceMs).map { rows -> rows.map { it.toModel() } }
 
     override suspend fun markAllPlayed(feedUrl: String) {
         episodeDao.markAllPlayed(feedUrl)

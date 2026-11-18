@@ -11,6 +11,7 @@ import com.podparar.core.model.HomeLists
 import com.podparar.core.playback.PlayerController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -59,6 +60,9 @@ class HomeViewModel @Inject constructor(
             // combine takes at most five typed flows, so the downloads join in a second step.
             .combine(downloads.downloads) { state, downloadMap -> state.copy(downloads = downloadMap) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
+
+    /** Emits the limit each time a download request was refused because it's reached. */
+    val limitReached: Flow<Int> = downloads.limitReached
 
     /** Plays [episode] from where it was left; if it's already loaded, toggles play/pause. */
     fun play(episode: Episode) {

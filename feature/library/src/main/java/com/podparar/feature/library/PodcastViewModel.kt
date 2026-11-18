@@ -13,6 +13,7 @@ import com.podparar.core.model.PodcastException
 import com.podparar.core.playback.PlayerController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +39,9 @@ class PodcastViewModel @Inject constructor(
     private val queue: QueueRepository,
     private val downloads: EpisodeDownloads,
 ) : ViewModel() {
+
+    /** Emits the limit each time a download request was refused because it's reached. */
+    val limitReached: Flow<Int> = downloads.limitReached
 
     /** Navigation has already decoded the path argument, so this is the feed URL as stored. */
     private val feedUrl: String = checkNotNull(savedStateHandle.get<String>(FEED_URL_ARG)) {

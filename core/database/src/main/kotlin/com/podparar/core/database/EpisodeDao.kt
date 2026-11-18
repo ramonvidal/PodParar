@@ -44,9 +44,11 @@ internal interface EpisodeDao {
         "SELECT episodes.*, podcasts.title AS podcastTitle, podcasts.artworkUrl AS podcastArtworkUrl " +
             "FROM episodes INNER JOIN podcasts ON podcasts.feedUrl = episodes.podcastUrl " +
             "WHERE episodes.played = 0 AND episodes.positionMs = 0 " +
+            "AND (episodes.pubDate >= :sinceMs OR episodes.pubDate <= 0 " +
+            "OR episodes.id IN (SELECT episodeId FROM downloads WHERE state = 'DONE')) " +
             "ORDER BY episodes.pubDate DESC, episodes.id ASC LIMIT :limit",
     )
-    fun observeNew(limit: Int): Flow<List<EpisodeWithPodcastRow>>
+    fun observeNew(limit: Int, sinceMs: Long): Flow<List<EpisodeWithPodcastRow>>
 
     @Upsert
     suspend fun upsertAll(episodes: List<EpisodeEntity>)

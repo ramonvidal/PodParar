@@ -178,6 +178,9 @@ internal class FakePodcastStore : PodcastStore {
     val inProgressLimits = mutableListOf<Int>()
     val newEpisodesLimits = mutableListOf<Int>()
 
+    /** The sinceMs values observeNewEpisodes was asked for, parallel to [newEpisodesLimits]. */
+    val newEpisodesSinces = mutableListOf<Long>()
+
     /** Every markAllPlayed call's feed URL. */
     val markAllPlayedCalls = mutableListOf<String>()
 
@@ -225,8 +228,11 @@ internal class FakePodcastStore : PodcastStore {
         }
     }
 
-    override fun observeNewEpisodes(limit: Int): Flow<List<EpisodeWithPodcast>> {
-        synchronized(this) { newEpisodesLimits += limit }
+    override fun observeNewEpisodes(limit: Int, sinceMs: Long): Flow<List<EpisodeWithPodcast>> {
+        synchronized(this) {
+            newEpisodesLimits += limit
+            newEpisodesSinces += sinceMs
+        }
         return joined().map { all ->
             all.filter { !it.episode.played && it.episode.positionMs == 0L }
                 .sortedByDescending { it.episode.pubDate }
