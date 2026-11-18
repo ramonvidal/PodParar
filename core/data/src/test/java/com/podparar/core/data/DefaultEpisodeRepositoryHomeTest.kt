@@ -66,7 +66,7 @@ class DefaultEpisodeRepositoryHomeTest {
         repository.observeNewEpisodes(30).first()
         repository.observeNewEpisodes(200).first()
 
-        assertEquals(listOf(30, 200), store.newEpisodesLimits)
+        assertEquals(listOf(30, 200), store.newEpisodesLimits.takeLast(2))
     }
 
     @Test

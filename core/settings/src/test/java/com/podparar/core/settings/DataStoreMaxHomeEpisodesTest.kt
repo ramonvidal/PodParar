@@ -49,8 +49,9 @@ class DataStoreMaxHomeEpisodesTest {
 
     @Test
     fun `defaults to 50`() = runTest {
-        assertEquals(HomeLimit.DEFAULT, newSettings().maxHomeEpisodes.first())
-        assertEquals(50, newSettings().maxHomeEpisodes.first())
+        val settings = newSettings()
+        assertEquals(HomeLimit.DEFAULT, settings.maxHomeEpisodes.first())
+        assertEquals(50, settings.maxHomeEpisodes.first())
     }
 
     @Test

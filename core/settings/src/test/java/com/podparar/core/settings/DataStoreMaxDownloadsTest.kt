@@ -50,13 +50,15 @@ class DataStoreMaxDownloadsTest {
 
     @Test
     fun `defaults to the download limit default`() = runTest {
-        assertEquals(DownloadLimit.DEFAULT, newSettings().maxDownloads.first())
-        assertEquals(20, newSettings().maxDownloads.first())
+        val settings = newSettings()
+        assertEquals(DownloadLimit.DEFAULT, settings.maxDownloads.first())
+        assertEquals(20, settings.maxDownloads.first())
     }
 
     @Test
     fun `setMaxDownloads stores the value`() = runTest {
         val settings = newSettings()
+        settings.setMaxHomeEpisodes(500)
         settings.setMaxDownloads(50)
         assertEquals(50, settings.maxDownloads.first())
         settings.setMaxDownloads(5)
