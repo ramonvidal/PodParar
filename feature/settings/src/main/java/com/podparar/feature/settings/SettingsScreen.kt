@@ -51,6 +51,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.podparar.core.model.AppLanguage
 import com.podparar.core.model.DownloadLimit
+import com.podparar.core.model.HomeLimit
 import com.podparar.core.model.SkipLengths
 import com.podparar.core.ui.R as CoreUiR
 import java.io.IOException
@@ -65,6 +66,7 @@ internal data class SettingsUiState(
     val wifiOnly: Boolean = true,
     val newEpisodeAlerts: Boolean = true,
     val maxDownloads: Int = DownloadLimit.DEFAULT,
+    val maxHomeEpisodes: Int = HomeLimit.DEFAULT,
     /** The outcome of the last OPML import or export, e.g. "Added 12 shows, 3 already followed, 1 failed". */
     val opmlMessage: String? = null,
     val opmlBusy: Boolean = false,
@@ -129,6 +131,7 @@ internal fun SettingsScreen(
                 wifiOnly = stored.wifiOnly,
                 newEpisodeAlerts = stored.newEpisodeAlerts,
                 maxDownloads = stored.maxDownloads,
+                maxHomeEpisodes = stored.maxHomeEpisodes,
             )
         }
     }
@@ -142,6 +145,7 @@ internal fun SettingsScreen(
         onWifiOnlyChange = viewModel::setWifiOnly,
         onNewEpisodeAlertsChange = viewModel::setNewEpisodeAlerts,
         onMaxDownloadsChange = viewModel::setMaxDownloads,
+        onMaxHomeEpisodesChange = viewModel::setMaxHomeEpisodes,
         onImportOpml = { importLauncher.launch(OPML_MIME_TYPES) },
         onExportOpml = { exportLauncher.launch(EXPORT_FILE_NAME) },
         onCheckForUpdates = viewModel::checkForUpdates,
@@ -210,16 +214,29 @@ internal fun SettingsContent(
     onNextPreviousSkipChange: (Boolean) -> Unit = {},
     onLanguageChange: (AppLanguage) -> Unit = {},
     onMaxDownloadsChange: (Int) -> Unit = {},
+    onMaxHomeEpisodesChange: (Int) -> Unit = {},
 ) {
     var showMaxDownloads by remember { mutableStateOf(false) }
     if (showMaxDownloads) {
         MaxDownloadsDialog(
             current = state.maxDownloads,
+            homeLimit = state.maxHomeEpisodes,
             onSelect = {
                 onMaxDownloadsChange(it)
                 showMaxDownloads = false
             },
             onDismiss = { showMaxDownloads = false },
+        )
+    }
+    var showMaxHome by remember { mutableStateOf(false) }
+    if (showMaxHome) {
+        MaxHomeEpisodesDialog(
+            current = state.maxHomeEpisodes,
+            onSelect = {
+                onMaxHomeEpisodesChange(it)
+                showMaxHome = false
+            },
+            onDismiss = { showMaxHome = false },
         )
     }
     Column(modifier.fillMaxSize()) {
@@ -313,6 +330,13 @@ internal fun SettingsContent(
                     hint = stringResource(R.string.settings_max_downloads_hint),
                     value = stringResource(R.string.settings_max_downloads_value, state.maxDownloads),
                     onClick = { showMaxDownloads = true },
+                )
+                RowDivider()
+                ValueRow(
+                    title = stringResource(R.string.settings_max_home_episodes),
+                    hint = stringResource(R.string.settings_max_home_episodes_hint),
+                    value = stringResource(R.string.settings_max_home_episodes_value, state.maxHomeEpisodes),
+                    onClick = { showMaxHome = true },
                 )
             }
             Group(stringResource(R.string.settings_your_shows)) {
@@ -463,10 +487,34 @@ private fun ValueRow(title: String, hint: String, value: String, onClick: () -> 
     }
 }
 
-/** A radio list of [DownloadLimit.OPTIONS], plus [current] when it is not one of them (e.g. set by an older version). */
+/** A radio list of [HomeLimit.OPTIONS], plus [current] when it is not one of them. */
 @Composable
-private fun MaxDownloadsDialog(current: Int, onSelect: (Int) -> Unit, onDismiss: () -> Unit) {
-    val options = remember(current) { (DownloadLimit.OPTIONS + current).distinct().sorted() }
+private fun MaxHomeEpisodesDialog(current: Int, onSelect: (Int) -> Unit, onDismiss: () -> Unit) {
+    val options = remember(current) { (HomeLimit.OPTIONS + current).distinct().sorted() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_max_home_episodes)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                options.forEach { value ->
+                    LanguageRow(
+                        title = stringResource(R.string.settings_max_home_episodes_value, value),
+                        hint = null,
+                        selected = value == current,
+                        onClick = { onSelect(value) },
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CoreUiR.string.cancel)) } },
+    )
+}
+
+/** A radio list of [DownloadLimit.optionsFor] the [homeLimit], plus [current] when it is not one of them. */
+@Composable
+private fun MaxDownloadsDialog(current: Int, homeLimit: Int, onSelect: (Int) -> Unit, onDismiss: () -> Unit) {
+    val options = remember(current, homeLimit) { (DownloadLimit.optionsFor(homeLimit) + current).distinct().sorted() }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.settings_max_downloads)) },

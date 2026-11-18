@@ -16,8 +16,11 @@
     <string name="settings_wifi_only">Só no Wi-Fi</string>
     <string name="settings_wifi_only_hint">Baixa os episódios só no Wi-Fi, pra não gastar seu pacote</string>
     <string name="settings_max_downloads">Limite de episódios baixados</string>
-    <string name="settings_max_downloads_hint">O máximo de episódios guardados baixados de uma vez. Chegou no limite, os downloads novos ficam travados até você apagar uns, meu rei.</string>
+    <string name="settings_max_downloads_hint">O máximo de episódios guardados baixados de uma vez. Chegou no limite, os downloads novos ficam travados até você apagar uns, meu rei. Ele é sempre menor que o limite da Home.</string>
     <string name="settings_max_downloads_value">%d episódios</string>
+    <string name="settings_max_home_episodes">Episódios na Home</string>
+    <string name="settings_max_home_episodes_hint">O máximo de episódios na lista de Episódios novos da Home. Os mais antigos que você não baixou saem da lista; os baixados ficam sempre, viu, painho?</string>
+    <string name="settings_max_home_episodes_value">%d episódios</string>
     <string name="settings_new_episode_alerts">Avisos de episódio novo</string>
     <string name="settings_new_episode_alerts_hint">Uma notificação quando os programas que você segue tiverem episódio novo, na hora</string>
     <string name="settings_your_shows">Seus programas</string>

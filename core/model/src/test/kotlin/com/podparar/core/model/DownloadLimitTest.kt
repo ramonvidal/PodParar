@@ -56,4 +56,45 @@ class DownloadLimitTest {
         assertEquals(1, DownloadLimit.slotsLeft(0, 0))
         assertEquals(200, DownloadLimit.slotsLeft(0, 1000))
     }
+
+    @Test
+    fun `optionsFor keeps only options below the home limit`() {
+        assertEquals(listOf(5, 10, 20), DownloadLimit.optionsFor(30))
+        assertEquals(listOf(5, 10, 20, 30), DownloadLimit.optionsFor(50))
+        assertEquals(listOf(5, 10, 20, 30, 50), DownloadLimit.optionsFor(100))
+        assertEquals(listOf(5, 10, 20, 30, 50, 100, 200), DownloadLimit.optionsFor(500))
+    }
+
+    @Test
+    fun `optionsFor excludes an option equal to the home limit`() {
+        assertFalse(50 in DownloadLimit.optionsFor(50))
+        assertTrue(DownloadLimit.optionsFor(50).all { it < 50 })
+    }
+
+    @Test
+    fun `optionsFor is a subset of OPTIONS and is never empty for the home options`() {
+        for (home in HomeLimit.OPTIONS) {
+            val options = DownloadLimit.optionsFor(home)
+            assertTrue(DownloadLimit.OPTIONS.containsAll(options))
+            assertTrue(options.isNotEmpty())
+        }
+    }
+
+    @Test
+    fun `coerceFor caps at one below the home limit`() {
+        assertEquals(29, DownloadLimit.coerceFor(100, 30))
+        assertEquals(29, DownloadLimit.coerceFor(30, 30))
+        assertEquals(20, DownloadLimit.coerceFor(20, 30))
+        assertEquals(49, DownloadLimit.coerceFor(200, 50))
+        assertEquals(200, DownloadLimit.coerceFor(200, 500))
+    }
+
+    @Test
+    fun `coerceFor still clamps to the download range and never goes under MIN`() {
+        assertEquals(1, DownloadLimit.coerceFor(0, 50))
+        assertEquals(1, DownloadLimit.coerceFor(-7, 50))
+        assertEquals(200, DownloadLimit.coerceFor(1000, 500))
+        assertEquals(9, DownloadLimit.coerceFor(1000, 0))
+        assertTrue(DownloadLimit.coerceFor(1, 0) >= DownloadLimit.MIN)
+    }
 }

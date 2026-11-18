@@ -1,7 +1,7 @@
 package com.podparar.core.data
 
-import com.podparar.core.model.EpisodeAge
 import com.podparar.core.model.EpisodeWithPodcast
+import com.podparar.core.model.HomeLimit
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -62,29 +62,19 @@ class DefaultEpisodeRepositoryHomeTest {
     }
 
     @Test
-    fun `newEpisodes asks the store for the one-month cutoff of the clock`() = runTest {
-        repository.newEpisodes.first()
+    fun `observeNewEpisodes passes the limit through to the store`() = runTest {
+        repository.observeNewEpisodes(30).first()
+        repository.observeNewEpisodes(200).first()
 
-        assertEquals(listOf(EpisodeAge.cutoffMs(now)), store.newEpisodesSinces)
+        assertEquals(listOf(30, 200), store.newEpisodesLimits)
     }
 
     @Test
-    fun `newEpisodes recomputes the cutoff on each collection`() = runTest {
-        var current = now
-        val moving = object : Clock() {
-            override fun getZone() = ZoneOffset.UTC
-            override fun withZone(zone: java.time.ZoneId?): Clock = this
-            override fun instant(): Instant = Instant.ofEpochMilli(current)
-        }
-        val repo = DefaultEpisodeRepository(store, moving)
+    fun `newEpisodes asks the store for the default Home limit of 50`() = runTest {
+        repository.newEpisodes.first()
 
-        repo.newEpisodes.first()
-        current = now + 10 * 86_400_000L
-        repo.newEpisodes.first()
-
-        assertEquals(listOf(50, 50), store.newEpisodesLimits)
-        assertEquals(listOf(EpisodeAge.cutoffMs(now), EpisodeAge.cutoffMs(current)), store.newEpisodesSinces)
-        assertTrue(store.newEpisodesSinces[1] > store.newEpisodesSinces[0])
+        assertEquals(listOf(HomeLimit.DEFAULT), store.newEpisodesLimits)
+        assertEquals(50, HomeLimit.DEFAULT)
     }
 
     @Test

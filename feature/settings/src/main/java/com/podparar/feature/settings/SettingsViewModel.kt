@@ -60,6 +60,7 @@ internal data class StoredSettings(
     val wifiOnly: Boolean,
     val newEpisodeAlerts: Boolean,
     val maxDownloads: Int,
+    val maxHomeEpisodes: Int,
 )
 
 /** This phone's choices, OPML import/export and "Check for updates". File access stays in the screen; this only sees text. */
@@ -79,9 +80,9 @@ class SettingsViewModel @Inject constructor(
         combine(playback.skipSilence, playback.shakeToExtend, ::Pair),
         playback.nextPreviousSkip,
         combine(downloads.wifiOnly, downloads.newEpisodeAlerts, ::Pair),
-        downloads.maxDownloads,
-    ) { (back, forward), (silence, shake), nextPreviousSkip, (wifi, alerts), maxDownloads ->
-        StoredSettings(back, forward, silence, shake, nextPreviousSkip, wifi, alerts, maxDownloads)
+        combine(downloads.maxDownloads, downloads.maxHomeEpisodes, ::Pair),
+    ) { (back, forward), (silence, shake), nextPreviousSkip, (wifi, alerts), (maxDownloads, maxHome) ->
+        StoredSettings(back, forward, silence, shake, nextPreviousSkip, wifi, alerts, maxDownloads, maxHome)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     internal val language: StateFlow<AppLanguage> =
@@ -145,6 +146,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setMaxDownloads(value: Int) {
         viewModelScope.launch { downloads.setMaxDownloads(value) }
+    }
+
+    fun setMaxHomeEpisodes(value: Int) {
+        viewModelScope.launch { downloads.setMaxHomeEpisodes(value) }
     }
 
     fun setNewEpisodeAlerts(enabled: Boolean) {

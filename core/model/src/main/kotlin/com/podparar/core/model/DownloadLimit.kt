@@ -17,6 +17,17 @@ object DownloadLimit {
     /** Clamps [value] to [MIN]..[MAX]. */
     fun coerce(value: Int): Int = value.coerceIn(MIN, MAX)
 
+    /** The [OPTIONS] that fit under the given [homeLimit] (strictly lower than it, see [HomeLimit]). */
+    fun optionsFor(homeLimit: Int): List<Int> = OPTIONS.filter { it <= HomeLimit.maxDownloadsFor(homeLimit) }
+
+    /**
+     * Clamps [value] to [MIN]..[MAX] and then below the given [homeLimit]
+     * ([HomeLimit.maxDownloadsFor]), never going under [MIN]. This is the one place the
+     * "downloads < Home limit" invariant lives.
+     */
+    fun coerceFor(value: Int, homeLimit: Int): Int =
+        coerce(value).coerceAtMost(HomeLimit.maxDownloadsFor(homeLimit)).coerceAtLeast(MIN)
+
     /** True when [active] downloads already meet or exceed the (coerced) [limit]. */
     fun isReached(active: Int, limit: Int): Boolean = active >= coerce(limit)
 

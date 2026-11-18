@@ -27,10 +27,16 @@ interface EpisodeRepository {
     val continueListening: Flow<List<EpisodeWithPodcast>>
 
     /**
-     * Unplayed, unstarted episodes for "New episodes", at most 50: published within the last calendar month
-     * (EpisodeAge.cutoffMs, recomputed on each collection), undated, or downloaded.
+     * Unplayed, unstarted episodes for "New episodes" with the default size (HomeLimit.DEFAULT, 50);
+     * same as observeNewEpisodes(HomeLimit.DEFAULT). Used by Android Auto.
      */
     val newEpisodes: Flow<List<EpisodeWithPodcast>>
+
+    /**
+     * Unplayed, unstarted episodes for "New episodes", at most [limit]: downloaded ones always show, the
+     * remaining slots go to the newest non-downloaded ones; older ones are dropped. pubDate DESC, id ASC.
+     */
+    fun observeNewEpisodes(limit: Int): Flow<List<EpisodeWithPodcast>>
 
     /** Marks every episode of that show played (positions back to 0). */
     suspend fun markAllPlayed(feedUrl: String)

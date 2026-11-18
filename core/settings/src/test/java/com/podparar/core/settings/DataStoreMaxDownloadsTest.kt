@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.podparar.core.model.DownloadLimit
+import com.podparar.core.model.HomeLimit
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -73,8 +74,18 @@ class DataStoreMaxDownloadsTest {
     }
 
     @Test
-    fun `values above the maximum are clamped down`() = runTest {
+    fun `values above the maximum are clamped below the default home limit`() = runTest {
         val settings = newSettings()
+        settings.setMaxDownloads(1000)
+        // Home defaults to 50, so downloads stay under it: 49.
+        assertEquals(HomeLimit.maxDownloadsFor(HomeLimit.DEFAULT), settings.maxDownloads.first())
+        assertEquals(49, settings.maxDownloads.first())
+    }
+
+    @Test
+    fun `values above the maximum are clamped to the maximum when home is large enough`() = runTest {
+        val settings = newSettings()
+        settings.setMaxHomeEpisodes(HomeLimit.MAX)
         settings.setMaxDownloads(1000)
         assertEquals(DownloadLimit.MAX, settings.maxDownloads.first())
         assertEquals(200, settings.maxDownloads.first())

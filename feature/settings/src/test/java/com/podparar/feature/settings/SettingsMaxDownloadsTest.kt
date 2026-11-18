@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -63,14 +64,14 @@ class SettingsMaxDownloadsTest {
         render()
         compose.onNodeWithText("Downloaded episodes limit").assertExists()
         compose.onNodeWithText(
-            "The most episodes kept downloaded at once. At the limit, new downloads are blocked until you remove some.",
+            "The most episodes kept downloaded at once. At the limit, new downloads are blocked until you remove some. It is always lower than the Home limit.",
         ).assertExists()
         compose.onNodeWithText("20 episodes").assertExists()
     }
 
     @Test
     fun rowShowsCurrentValue() {
-        render(SettingsUiState(maxDownloads = 50, appVersion = "0.40"))
+        render(SettingsUiState(maxDownloads = 50, maxHomeEpisodes = 500, appVersion = "0.40"))
         compose.onNodeWithText("50 episodes").assertExists()
     }
 
@@ -82,13 +83,37 @@ class SettingsMaxDownloadsTest {
     }
 
     @Test
-    fun tappingRowListsAllOptions() {
+    fun tappingRowListsOnlyOptionsBelowHomeLimit() {
         render()
+        openDialog()
+        listOf(5, 10, 20, 30).forEach {
+            compose.onNode(inDialog("$it episodes")).assertExists()
+        }
+        listOf(50, 100, 200).forEach {
+            compose.onAllNodes(inDialog("$it episodes")).assertCountEquals(0)
+        }
+        compose.onNodeWithText("Cancel").assertExists()
+    }
+
+    @Test
+    fun highHomeLimitListsAllSevenOptions() {
+        render(SettingsUiState(maxHomeEpisodes = 500, appVersion = "0.40"))
         openDialog()
         listOf(5, 10, 20, 30, 50, 100, 200).forEach {
             compose.onNode(inDialog("$it episodes")).assertExists()
         }
-        compose.onNodeWithText("Cancel").assertExists()
+    }
+
+    @Test
+    fun lowHomeLimitListsOnlyFiveTenTwenty() {
+        render(SettingsUiState(maxHomeEpisodes = 30, appVersion = "0.40"))
+        openDialog()
+        listOf(5, 10, 20).forEach {
+            compose.onNode(inDialog("$it episodes")).assertExists()
+        }
+        listOf(30, 50, 100, 200).forEach {
+            compose.onAllNodes(inDialog("$it episodes")).assertCountEquals(0)
+        }
     }
 
     @Test
@@ -96,7 +121,7 @@ class SettingsMaxDownloadsTest {
         render(SettingsUiState(maxDownloads = 25, appVersion = "0.40"))
         openDialog()
         compose.onNode(inDialog("25 episodes")).assertExists()
-        listOf(5, 10, 20, 30, 50, 100, 200).forEach {
+        listOf(5, 10, 20, 30).forEach {
             compose.onNode(inDialog("$it episodes")).assertExists()
         }
     }
@@ -113,8 +138,8 @@ class SettingsMaxDownloadsTest {
     fun choosingAnOptionReportsItAndClosesDialog() {
         render()
         openDialog()
-        compose.onNode(inDialog("50 episodes")).performClick()
-        assertEquals(listOf(50), chosen)
+        compose.onNode(inDialog("30 episodes")).performClick()
+        assertEquals(listOf(30), chosen)
         compose.onAllNodesWithText("Cancel").assertCountEquals(0)
     }
 

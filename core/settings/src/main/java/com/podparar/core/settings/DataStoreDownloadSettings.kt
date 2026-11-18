@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.emptyPreferences
 import com.podparar.core.model.DownloadLimit
+import com.podparar.core.model.HomeLimit
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -29,7 +30,11 @@ internal class DataStoreDownloadSettings(
         .distinctUntilChanged()
 
     override val maxDownloads: Flow<Int> = preferences
-        .map { prefs -> DownloadLimit.coerce(prefs[MAX_DOWNLOADS] ?: DownloadLimit.DEFAULT) }
+        .map { prefs -> DownloadLimit.coerceFor(prefs[MAX_DOWNLOADS] ?: DownloadLimit.DEFAULT, homeLimit(prefs)) }
+        .distinctUntilChanged()
+
+    override val maxHomeEpisodes: Flow<Int> = preferences
+        .map { prefs -> homeLimit(prefs) }
         .distinctUntilChanged()
 
     override suspend fun setWifiOnly(enabled: Boolean) {
@@ -41,12 +46,26 @@ internal class DataStoreDownloadSettings(
     }
 
     override suspend fun setMaxDownloads(value: Int) {
-        dataStore.edit { prefs -> prefs[MAX_DOWNLOADS] = DownloadLimit.coerce(value) }
+        dataStore.edit { prefs -> prefs[MAX_DOWNLOADS] = DownloadLimit.coerceFor(value, homeLimit(prefs)) }
     }
+
+    /** Also lowers the stored max downloads in the same edit, so it stays below the home limit. */
+    override suspend fun setMaxHomeEpisodes(value: Int) {
+        dataStore.edit { prefs ->
+            val home = HomeLimit.coerce(value)
+            prefs[MAX_HOME_EPISODES] = home
+            val downloads = prefs[MAX_DOWNLOADS] ?: DownloadLimit.DEFAULT
+            prefs[MAX_DOWNLOADS] = DownloadLimit.coerceFor(downloads, home)
+        }
+    }
+
+    private fun homeLimit(prefs: Preferences): Int =
+        HomeLimit.coerce(prefs[MAX_HOME_EPISODES] ?: HomeLimit.DEFAULT)
 
     private companion object {
         val WIFI_ONLY = booleanPreferencesKey("downloads_wifi_only")
         val NEW_EPISODE_ALERTS = booleanPreferencesKey("new_episode_alerts")
         val MAX_DOWNLOADS = intPreferencesKey("max_downloads")
+        val MAX_HOME_EPISODES = intPreferencesKey("max_home_episodes")
     }
 }

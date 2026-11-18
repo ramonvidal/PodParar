@@ -2,15 +2,13 @@ package com.podparar.core.data
 
 import com.podparar.core.database.PodcastStore
 import com.podparar.core.model.Episode
-import com.podparar.core.model.EpisodeAge
 import com.podparar.core.model.EpisodeWithPodcast
+import com.podparar.core.model.HomeLimit
 import com.podparar.core.model.PlaybackRules
 import com.podparar.core.model.Podcast
 import java.time.Clock
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
 
 class DefaultEpisodeRepository @Inject constructor(
     private val store: PodcastStore,
@@ -19,10 +17,9 @@ class DefaultEpisodeRepository @Inject constructor(
 
     override val continueListening: Flow<List<EpisodeWithPodcast>> = store.observeInProgress(CONTINUE_LISTENING_LIMIT)
 
-    override val newEpisodes: Flow<List<EpisodeWithPodcast>> = flow {
-        // The cutoff is recomputed on every collection, so the one-month window moves with the clock.
-        emitAll(store.observeNewEpisodes(NEW_EPISODES_LIMIT, EpisodeAge.cutoffMs(clock.millis())))
-    }
+    override val newEpisodes: Flow<List<EpisodeWithPodcast>> = store.observeNewEpisodes(HomeLimit.DEFAULT)
+
+    override fun observeNewEpisodes(limit: Int): Flow<List<EpisodeWithPodcast>> = store.observeNewEpisodes(limit)
 
     override fun episode(id: String): Flow<Episode?> = store.observeEpisode(id)
 
@@ -50,6 +47,5 @@ class DefaultEpisodeRepository @Inject constructor(
 
     private companion object {
         const val CONTINUE_LISTENING_LIMIT = 10
-        const val NEW_EPISODES_LIMIT = 50
     }
 }

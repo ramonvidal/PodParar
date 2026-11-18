@@ -22,12 +22,12 @@ class SettingsMaxDownloadsScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun render(dark: Boolean, maxDownloads: Int) {
+    private fun render(dark: Boolean, maxDownloads: Int = 20, maxHomeEpisodes: Int = 50) {
         compose.setContent {
             PodPararTheme(darkTheme = dark) {
                 Surface(Modifier.fillMaxSize()) {
                     SettingsContent(
-                        state = SettingsUiState(maxDownloads = maxDownloads, appVersion = "0.40"),
+                        state = SettingsUiState(maxDownloads = maxDownloads, maxHomeEpisodes = maxHomeEpisodes, appVersion = "0.40"),
                         onSkipBackChange = {},
                         onSkipForwardChange = {},
                         onSkipSilenceChange = {},
@@ -55,5 +55,19 @@ class SettingsMaxDownloadsScreenshotTest {
     fun rowDark() {
         render(dark = true, maxDownloads = 20)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/settings-max-downloads-dark.png")
+    }
+
+    @Test
+    fun rowsLight() {
+        render(dark = false)
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/settings-downloads-rows-light.png")
+    }
+
+    @Test
+    fun homeDialogOpen() {
+        render(dark = false)
+        compose.onNodeWithText("Episodes on Home").performClick()
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/settings-max-home-episodes-dialog.png")
     }
 }

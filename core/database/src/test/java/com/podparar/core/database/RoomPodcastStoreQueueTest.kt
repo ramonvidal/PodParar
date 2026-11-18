@@ -290,7 +290,7 @@ class RoomPodcastStoreQueueTest {
         store.savePosition(started.id, 3_000L, 0L, base + 1)
         store.setPlayed(played.id, true)
 
-        val items = store.observeNewEpisodes(50, Long.MIN_VALUE).first()
+        val items = store.observeNewEpisodes(50).first()
 
         assertEquals(listOf(a2.id, b1.id, a1.id), items.ids())
         assertEquals(EpisodeWithPodcast(b1, "B", null), items[1])
@@ -302,7 +302,7 @@ class RoomPodcastStoreQueueTest {
         val eps = (1..8).map { episode(a, "$it", pubDate = base + it * day) }
         save(podcast(a, "A"), *eps.toTypedArray())
 
-        val items = store.observeNewEpisodes(4, Long.MIN_VALUE).first()
+        val items = store.observeNewEpisodes(4).first()
 
         assertEquals(listOf(eps[7].id, eps[6].id, eps[5].id, eps[4].id), items.ids())
     }
@@ -312,11 +312,11 @@ class RoomPodcastStoreQueueTest {
         val one = episode(a, "1")
         save(podcast(a, "A"), one)
         store.setPlayed(one.id, true)
-        assertEquals(emptyList<EpisodeWithPodcast>(), store.observeNewEpisodes(50, Long.MIN_VALUE).first())
+        assertEquals(emptyList<EpisodeWithPodcast>(), store.observeNewEpisodes(50).first())
 
         store.setPlayed(one.id, false)
 
-        assertEquals(listOf(one.id), store.observeNewEpisodes(50, Long.MIN_VALUE).first().ids())
+        assertEquals(listOf(one.id), store.observeNewEpisodes(50).first().ids())
     }
 
     @Test
@@ -329,7 +329,7 @@ class RoomPodcastStoreQueueTest {
         store.deletePodcast(a)
 
         assertEquals(emptyList<EpisodeWithPodcast>(), store.observeInProgress(10).first())
-        assertEquals(emptyList<EpisodeWithPodcast>(), store.observeNewEpisodes(50, Long.MIN_VALUE).first())
+        assertEquals(emptyList<EpisodeWithPodcast>(), store.observeNewEpisodes(50).first())
     }
 
     // --- markAllPlayed ---
@@ -380,7 +380,7 @@ class RoomPodcastStoreQueueTest {
         store.markAllPlayed(a)
 
         assertEquals(emptyList<EpisodeWithPodcast>(), store.observeInProgress(10).first())
-        assertEquals(listOf(b1.id), store.observeNewEpisodes(50, Long.MIN_VALUE).first().ids())
+        assertEquals(listOf(b1.id), store.observeNewEpisodes(50).first().ids())
     }
 
     @Test

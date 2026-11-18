@@ -1,6 +1,7 @@
 package com.podparar.core.settings
 
 import com.podparar.core.model.DownloadLimit
+import com.podparar.core.model.HomeLimit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -15,9 +16,17 @@ interface DownloadSettings {
     /** The most episodes kept downloaded at once; DEFAULT until set. */
     val maxDownloads: Flow<Int> get() = flowOf(DownloadLimit.DEFAULT)
 
+    /**
+     * The most episodes in Home's New episodes list; downloaded ones always show and count in it;
+     * the max downloads is always lower.
+     */
+    val maxHomeEpisodes: Flow<Int> get() = flowOf(HomeLimit.DEFAULT)
+
     suspend fun setWifiOnly(enabled: Boolean)
 
     suspend fun setNewEpisodeAlerts(enabled: Boolean)
 
     suspend fun setMaxDownloads(value: Int) {}
+
+    suspend fun setMaxHomeEpisodes(value: Int) {}
 }

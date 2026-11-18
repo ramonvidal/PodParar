@@ -40,15 +40,26 @@ internal interface EpisodeDao {
     )
     fun observeInProgress(limit: Int): Flow<List<EpisodeWithPodcastRow>>
 
+    /**
+     * New episodes: unplayed and unstarted, downloaded ones (state DONE) always, the remaining slots up to
+     * [limit] filled with the newest non-downloaded ones. MAX(0, ...) because a negative LIMIT means
+     * unlimited in SQLite; the outer LIMIT is a safety cap.
+     */
     @Query(
         "SELECT episodes.*, podcasts.title AS podcastTitle, podcasts.artworkUrl AS podcastArtworkUrl " +
             "FROM episodes INNER JOIN podcasts ON podcasts.feedUrl = episodes.podcastUrl " +
             "WHERE episodes.played = 0 AND episodes.positionMs = 0 " +
-            "AND (episodes.pubDate >= :sinceMs OR episodes.pubDate <= 0 " +
-            "OR episodes.id IN (SELECT episodeId FROM downloads WHERE state = 'DONE')) " +
+            "AND (episodes.id IN (SELECT episodeId FROM downloads WHERE state = 'DONE') " +
+            "OR episodes.id IN (SELECT e2.id FROM episodes e2 " +
+            "WHERE e2.played = 0 AND e2.positionMs = 0 " +
+            "AND e2.id NOT IN (SELECT episodeId FROM downloads WHERE state = 'DONE') " +
+            "ORDER BY e2.pubDate DESC, e2.id ASC " +
+            "LIMIT MAX(0, :limit - (SELECT COUNT(*) FROM episodes e3 " +
+            "WHERE e3.played = 0 AND e3.positionMs = 0 " +
+            "AND e3.id IN (SELECT episodeId FROM downloads WHERE state = 'DONE'))))) " +
             "ORDER BY episodes.pubDate DESC, episodes.id ASC LIMIT :limit",
     )
-    fun observeNew(limit: Int, sinceMs: Long): Flow<List<EpisodeWithPodcastRow>>
+    fun observeNew(limit: Int): Flow<List<EpisodeWithPodcastRow>>
 
     @Upsert
     suspend fun upsertAll(episodes: List<EpisodeEntity>)

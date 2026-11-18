@@ -9,13 +9,16 @@ import com.podparar.core.downloads.EpisodeDownloads
 import com.podparar.core.model.Episode
 import com.podparar.core.model.HomeLists
 import com.podparar.core.playback.PlayerController
+import com.podparar.core.settings.DownloadSettings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -24,6 +27,7 @@ import kotlinx.coroutines.launch
  * Home: what's under way, the queue and the newest episodes, all from the database, plus
  * playing an episode, queue changes, marking played or unplayed and downloads.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val episodes: EpisodeRepository,
@@ -31,13 +35,14 @@ class HomeViewModel @Inject constructor(
     repository: PodcastRepository,
     private val player: PlayerController,
     private val downloads: EpisodeDownloads,
+    settings: DownloadSettings,
 ) : ViewModel() {
 
     internal val uiState: StateFlow<HomeUiState> =
         combine(
             episodes.continueListening,
             queue.queue,
-            episodes.newEpisodes,
+            settings.maxHomeEpisodes.flatMapLatest { episodes.observeNewEpisodes(it) },
             repository.podcasts.map { it.isNotEmpty() }.distinctUntilChanged(),
             // Only which episode is loaded and whether it plays matter here, not the
             // position ticks, so Home isn't rebuilt every half second.
