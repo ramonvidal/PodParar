@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,6 +42,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -352,54 +354,68 @@ private fun ContinueCard(
     val remainingMs = (episode.durationMs - episode.positionMs).coerceAtLeast(0L)
     var menuOpen by remember { mutableStateOf(false) }
     Box {
+        val downloaded = download?.state == DownloadState.DONE
         Card(modifier = Modifier.width(140.dp)) {
-            Column(
-                Modifier
-                    .combinedClickable(
-                        onClick = onClick,
-                        onLongClick = { menuOpen = true },
-                        onLongClickLabel = stringResource(R.string.home_episode_actions),
+            Box {
+                Column(
+                    Modifier
+                        .combinedClickable(
+                            onClick = onClick,
+                            onLongClick = { menuOpen = true },
+                            onLongClickLabel = stringResource(R.string.home_episode_actions),
+                        )
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    // The title is right underneath, so the picture needs no description of its own.
+                    Artwork(
+                        url = item.artworkUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    .padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                // The title is right underneath, so the picture needs no description of its own.
-                Artwork(
-                    url = item.artworkUrl,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text(
-                    episode.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (episode.durationMs > 0) {
-                    LinearProgressIndicator(
-                        progress = { PlaybackRules.progress(episode.positionMs, episode.durationMs) },
-                        modifier = Modifier.fillMaxWidth().height(3.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        gapSize = 0.dp,
-                        drawStopIndicator = {},
+                    Text(
+                        episode.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                }
-                val downloaded = download?.state == DownloadState.DONE
-                if (episode.durationMs > 0 || downloaded) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        if (episode.durationMs > 0) {
-                            val minutes = ((remainingMs + MS_PER_MINUTE - 1) / MS_PER_MINUTE).coerceAtLeast(1L).toInt()
-                            Text(
-                                pluralStringResource(R.plurals.home_minutes_left, minutes, minutes),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                    if (episode.durationMs > 0) {
+                        LinearProgressIndicator(
+                            progress = { PlaybackRules.progress(episode.positionMs, episode.durationMs) },
+                            modifier = Modifier.fillMaxWidth().height(3.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            gapSize = 0.dp,
+                            drawStopIndicator = {},
+                        )
+                    }
+                    if (episode.durationMs > 0 || downloaded) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            if (episode.durationMs > 0) {
+                                val minutes = ((remainingMs + MS_PER_MINUTE - 1) / MS_PER_MINUTE).coerceAtLeast(1L).toInt()
+                                Text(
+                                    pluralStringResource(R.plurals.home_minutes_left, minutes, minutes),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (downloaded) DownloadedMark()
                         }
-                        if (downloaded) DownloadedMark()
+                    }
+                }
+                if (downloaded) {
+                    // Purely visual marker; the Card's rounded clip trims its corners.
+                    Box(Modifier.matchParentSize()) {
+                        Box(
+                            Modifier
+                                .width(4.dp)
+                                .fillMaxHeight()
+                                .background(MaterialTheme.colorScheme.primary)
+                                .testTag("download_stripe"),
+                        )
                     }
                 }
             }

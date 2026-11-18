@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -249,13 +250,15 @@ fun EpisodeRow(
             }
             if (download?.state == DownloadState.DONE) {
                 // Purely visual marker, so no semantics; the Card's rounded clip trims its corners.
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .width(4.dp)
-                        .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.primary),
-                )
+                Box(Modifier.matchParentSize()) {
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.primary)
+                            .testTag("download_stripe"),
+                    )
+                }
             }
             if (isDownloading) {
                 val barModifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp)
@@ -381,12 +384,7 @@ private fun DownloadStatus(download: Download) {
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         when (download.state) {
-            DownloadState.DONE -> Icon(
-                painter = painterResource(R.drawable.ic_download_done),
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
+            DownloadState.DONE -> Unit
             DownloadState.FAILED -> Icon(
                 painter = painterResource(R.drawable.ic_error),
                 contentDescription = null,
