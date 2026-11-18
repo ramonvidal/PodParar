@@ -1,10 +1,12 @@
 package com.podparar.core.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -70,6 +72,9 @@ import java.time.ZoneId
  * circle filling up with "Downloading" (spinning while the size is unknown), or "Download
  * failed" in the error colour.
  * The progress bar has no stop dot at its end and the circle no gap.
+ * A fully downloaded episode (state DONE only) also gets a 4.dp stripe in the primary colour
+ * along the card's left edge, full height and trimmed by the card's rounded corners; it is
+ * purely visual. Queued or running downloads keep the tinted card and bottom progress bar.
  */
 @Composable
 fun EpisodeRow(
@@ -241,6 +246,16 @@ fun EpisodeRow(
                         contentDescription = stringResource(if (showsPause) R.string.pause else R.string.play),
                     )
                 }
+            }
+            if (download?.state == DownloadState.DONE) {
+                // Purely visual marker, so no semantics; the Card's rounded clip trims its corners.
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .width(4.dp)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.primary),
+                )
             }
             if (isDownloading) {
                 val barModifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp)
