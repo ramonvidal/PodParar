@@ -78,11 +78,11 @@ internal object CarMediaItems {
         episode(episode, podcast?.title, podcast?.artworkUrl)
 
     /**
-     * Page [page] of [items] cut to [CarBrowse.MAX_ITEMS]; empty past the end.
+     * Page [page] of [items] cut to [maxItems] (default [CarBrowse.MAX_ITEMS]); empty past the end.
      * [pageSize] is at least 1 (Media3 guarantees it; anything less is treated as 1).
      */
-    fun <T> page(items: List<T>, page: Int, pageSize: Int): List<T> {
-        val limited = items.take(CarBrowse.MAX_ITEMS)
+    fun <T> page(items: List<T>, page: Int, pageSize: Int, maxItems: Int = CarBrowse.MAX_ITEMS): List<T> {
+        val limited = items.take(maxItems.coerceAtLeast(0))
         val size = pageSize.coerceAtLeast(1).toLong()
         val from = page.coerceAtLeast(0).toLong() * size
         if (from >= limited.size) return emptyList()

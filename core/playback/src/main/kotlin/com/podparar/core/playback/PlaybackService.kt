@@ -31,6 +31,7 @@ import com.podparar.core.model.Podcast
 import com.podparar.core.model.SkipLengths
 import com.podparar.core.model.SleepTimers
 import com.podparar.core.settings.AppLocale
+import com.podparar.core.settings.DownloadSettings
 import com.podparar.core.settings.PlaybackSettings
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
@@ -38,6 +39,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +52,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.guava.future
 import kotlinx.coroutines.isActive
@@ -95,6 +98,9 @@ internal class PlaybackService : MediaLibraryService() {
 
     @Inject
     lateinit var settings: PlaybackSettings
+
+    @Inject
+    lateinit var downloadSettings: DownloadSettings
 
     @Inject
     lateinit var sleepTimers: SleepTimerController
@@ -241,20 +247,31 @@ internal class PlaybackService : MediaLibraryService() {
 
     /**
      * Tells a car showing one of the lists that it changed (episodes added, removed or moved;
-     * position saves alone don't count), so it reloads it.
+     * position saves alone don't count), so it reloads it. "New episodes" follows the Home
+     * limit setting; the other lists are capped at [CarBrowse.MAX_ITEMS].
      */
+    @kotlin.OptIn(ExperimentalCoroutinesApi::class)
     private fun observeCarLists() {
         notifyOnChange(CarBrowse.CONTINUE, episodes.continueListening.map { list -> list.map { it.episode.id } })
         notifyOnChange(CarBrowse.UP_NEXT, queue.queue.map { list -> list.map { it.episode.id } })
-        notifyOnChange(CarBrowse.NEW, episodes.newEpisodes.map { list -> list.map { it.episode.id } })
+        notifyOnChange(
+            CarBrowse.NEW,
+            downloadSettings.maxHomeEpisodes.distinctUntilChanged().flatMapLatest { limit ->
+                episodes.observeNewEpisodes(limit).map { list -> list.map { it.episode.id } }
+            },
+        ) { downloadSettings.maxHomeEpisodes.first() }
         notifyOnChange(CarBrowse.SHOWS, podcasts.podcasts.map { list -> list.map { it.feedUrl to it.title } })
     }
 
-    private fun notifyOnChange(parentId: String, contents: Flow<List<Any>>) {
+    private fun notifyOnChange(
+        parentId: String,
+        contents: Flow<List<Any>>,
+        maxItems: suspend () -> Int = { CarBrowse.MAX_ITEMS },
+    ) {
         scope.launch {
             try {
                 contents.distinctUntilChanged().drop(1).collect { list ->
-                    session?.notifyChildrenChanged(parentId, list.size.coerceAtMost(CarBrowse.MAX_ITEMS), null)
+                    session?.notifyChildrenChanged(parentId, list.size.coerceAtMost(maxItems()), null)
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -681,7 +698,7 @@ internal class PlaybackService : MediaLibraryService() {
         }
     }
 
-    /** Page [page] of [parentId]'s children (at most [CarBrowse.MAX_ITEMS] in all); null for an unknown parent. */
+    /** Page [page] of [parentId]'s children (at most [CarBrowse.MAX_ITEMS] in all, or the Home limit for New episodes); null for an unknown parent. */
     private suspend fun childrenOf(parentId: String, page: Int, pageSize: Int): List<MediaItem>? {
         if (parentId == CarBrowse.ROOT) {
             return CarMediaItems.page(CarMediaItems.topFolders(this), page, pageSize)
@@ -692,8 +709,12 @@ internal class PlaybackService : MediaLibraryService() {
                     .map { CarMediaItems.episode(it.episode, it.podcastTitle, it.podcastArtworkUrl) }
                 CarBrowse.UP_NEXT -> CarMediaItems.page(queue.queue.first(), page, pageSize)
                     .map { CarMediaItems.episode(it.episode, it.podcastTitle, it.podcastArtworkUrl) }
-                CarBrowse.NEW -> CarMediaItems.page(episodes.newEpisodes.first(), page, pageSize)
-                    .map { CarMediaItems.episode(it.episode, it.podcastTitle, it.podcastArtworkUrl) }
+                CarBrowse.NEW -> {
+                    val homeLimit = downloadSettings.maxHomeEpisodes.first()
+                    val newEpisodes = episodes.observeNewEpisodes(homeLimit).first()
+                    CarMediaItems.page(newEpisodes, page, pageSize, homeLimit)
+                        .map { CarMediaItems.episode(it.episode, it.podcastTitle, it.podcastArtworkUrl) }
+                }
                 CarBrowse.SHOWS -> CarMediaItems.page(podcasts.podcasts.first(), page, pageSize)
                     .map(CarMediaItems::show)
                 else -> {
