@@ -1,0 +1,51 @@
+<resources>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_auto">Automático</string>
+    <string name="settings_language_auto_hint">Acompanha seu celular: Baianês nos celulares em português, inglês nos outros</string>
+    <string name="settings_playback">Reprodução</string>
+    <string name="settings_skip_back">Voltar</string>
+    <string name="settings_skip_forward">Avançar</string>
+    <string name="settings_seconds">%d s</string>
+    <string name="settings_skip_silence">Pular silêncio</string>
+    <string name="settings_skip_silence_hint">Pula os silêncios dos episódios, que só enrolam</string>
+    <string name="settings_next_previous_skip">Botões do carro e do fone pulam</string>
+    <string name="settings_next_previous_skip_hint">Próximo e anterior avançam e voltam o tempo em vez de trocar de episódio</string>
+    <string name="settings_shake_to_extend">Sacudir para somar 5 minutos</string>
+    <string name="settings_shake_to_extend_hint">Com a soneca rodando, sacode o celular pra continuar escutando</string>
+    <string name="settings_downloads">Downloads</string>
+    <string name="settings_wifi_only">Só no Wi-Fi</string>
+    <string name="settings_wifi_only_hint">Baixa os episódios só no Wi-Fi, pra não gastar seu pacote</string>
+    <string name="settings_new_episode_alerts">Avisos de episódio novo</string>
+    <string name="settings_new_episode_alerts_hint">Uma notificação quando os programas que você segue tiverem episódio novo, na hora</string>
+    <string name="settings_your_shows">Seus programas</string>
+    <string name="settings_import_opml">Importar de OPML</string>
+    <string name="settings_import_opml_hint">Segue os programas de um arquivo de outro app de podcast</string>
+    <string name="settings_export_opml">Exportar para OPML</string>
+    <string name="settings_export_opml_hint">Guarda num arquivo os programas que você segue</string>
+    <string name="settings_importing">Importando…</string>
+    <string name="settings_importing_progress">Importando %1$d de %2$d…</string>
+    <string name="settings_exporting">Exportando…</string>
+    <plurals name="settings_import_added">
+        <item quantity="one">%d programa adicionado, prontinho</item>
+        <item quantity="other">%d programas adicionados, prontinho</item>
+    </plurals>
+    <string name="settings_import_already">%d já seguidos</string>
+    <string name="settings_import_failed_count">%d deram ruim</string>
+    <string name="settings_import_nothing">Oxente, num tem programa nenhum nesse arquivo</string>
+    <plurals name="settings_exported">
+        <item quantity="one">%d programa exportado, tá na mão</item>
+        <item quantity="other">%d programas exportados, tá na mão</item>
+    </plurals>
+    <string name="settings_not_opml">Vixe, esse arquivo num é uma lista de programas (OPML).</string>
+    <string name="settings_import_failed">Deu ruim: num deu pra importar esse arquivo.</string>
+    <string name="settings_export_failed">Deu ruim: num deu pra salvar o arquivo.</string>
+    <string name="settings_about">Sobre</string>
+    <string name="settings_app_version">Escutaê %1$s</string>
+    <string name="settings_app_name">Escutaê</string>
+    <string name="settings_check_updates">Procurar atualização</string>
+    <string name="settings_check_updates_hint">O Escutaê também procura sozinho a cada poucas horas</string>
+    <string name="settings_checking_updates">Verificando…</string>
+    <string name="settings_up_to_date">Você já está com a versão mais nova, arretado!</string>
+    <string name="settings_update_found">O Escutaê %1$s chegou: toque em Instalar no topo da tela.</string>
+    <string name="settings_update_check_failed">Deu ruim na verificação. Veja sua conexão e tente de novo.</string>
+</resources>

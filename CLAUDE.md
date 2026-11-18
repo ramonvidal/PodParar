@@ -49,6 +49,9 @@ in the way and what you propose, before writing the code.
   (`ic_*`), copied from the library, not drawn by hand.
 - **Each module owns its strings.** Shared ones (Cancel, Retry, error messages) live in
   `:core:ui` and are imported as `com.podparar.core.ui.R as CoreUiR`.
+- **Two languages: English and Baianês** (regional Portuguese from Bahia). Every `values/strings.xml` has a
+  twin in `values-b+pt+BR+baianes/` (style guide: `docs/baianes-style.md`); `scripts/check-translations.py`
+  checks keys, order and placeholders in CI, so add a string to both files in the same change.
 - **New modules use the convention plugins** in `build-logic/convention`
   (`podparar.android.feature`, `podparar.android.library`, `podparar.jvm.library`, ...).
 - **New core modules** must be added to `ModuleRules.CORE_DEPENDENCIES` with what they

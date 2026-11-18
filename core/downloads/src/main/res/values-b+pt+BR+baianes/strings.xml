@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloads_channel">Downloads</string>
+    <string name="downloads_channel_description">Andamento dos episódios que tão sendo baixados</string>
+    <string name="downloads_new_episodes_channel">Episódios novos</string>
+    <string name="downloads_new_episodes_channel_description">Episódios novos que a atualização em segundo plano achou</string>
+    <string name="downloads_downloading">Baixando</string>
+    <!-- One line of the new-episodes notification: show title, episode title. -->
+    <string name="downloads_episode_line">%1$s: %2$s</string>
+    <plurals name="downloads_new_episodes">
+        <item quantity="one">%1$d episódio novo, massa</item>
+        <item quantity="other">%1$d episódios novos, massa</item>
+    </plurals>
+</resources>

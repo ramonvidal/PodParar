@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_title">Início</string>
+    <string name="home_continue_listening">Continuar a ouvir</string>
+    <string name="home_up_next">Na fila</string>
+    <plurals name="home_up_next_count">
+        <item quantity="one">%d episódio</item>
+        <item quantity="other">%d episódios</item>
+    </plurals>
+    <string name="home_new_episodes">Episódios novos</string>
+    <string name="home_caught_up">Tá tudo em dia, meu rei</string>
+    <string name="home_empty_title">Oxe, num tem nada pra tocar ainda</string>
+    <string name="home_empty_body">Siga uns programas e os episódios novos aparecem aqui na hora.</string>
+    <string name="home_find_show">Achar um programa</string>
+    <plurals name="home_minutes_left">
+        <item quantity="one">Falta %d min</item>
+        <item quantity="other">Faltam %d min</item>
+    </plurals>
+    <string name="home_reorder">Arraste pra reordenar</string>
+    <string name="home_move_up">Subir</string>
+    <string name="home_move_down">Descer</string>
+    <string name="home_episode_actions">Ações do episódio</string>
+</resources>

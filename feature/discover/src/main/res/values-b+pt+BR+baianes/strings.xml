@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="discover_title">Descobrir</string>
+    <string name="discover_search_hint">Procure um programa, meu rei</string>
+    <string name="discover_clear_search">Limpar busca</string>
+    <string name="discover_add_by_link">Adicionar por link RSS</string>
+    <string name="discover_start_title">Achar um programa</string>
+    <string name="discover_start_body">Busque pelo nome, ou adicione qualquer programa pelo link RSS.</string>
+    <string name="discover_no_results">Eita, num achei nenhum programa pra “%1$s”</string>
+    <string name="discover_link_title">Adicionar por link RSS</string>
+    <string name="discover_link_label">Link RSS</string>
+    <string name="discover_link_placeholder">https://example.com/feed.xml</string>
+    <string name="discover_link_add">Adicionar</string>
+    <string name="discover_link_adding">Dá um tempinho, adicionando o programa…</string>
+</resources>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_title">Biblioteca</string>
+    <string name="library_empty_title">Oxe, num tem programa aqui ainda</string>
+    <string name="library_empty_body">Procura programas pra seguir em Descobrir.</string>
+    <string name="library_find_show">Achar programa</string>
+    <string name="library_back">Voltar</string>
+    <string name="library_more_options">Mais opções</string>
+    <string name="library_auto_download">Baixar episódios novos sozinho</string>
+    <string name="library_mark_all_played">Marcar tudo como ouvido</string>
+    <string name="library_unsubscribe">Deixar de seguir</string>
+    <string name="library_unsubscribe_title">Deixar de seguir %1$s?</string>
+    <string name="library_unsubscribe_body">O programa, os episódios e os downloads vão sair desse celular.</string>
+    <string name="library_more">Mais</string>
+    <string name="library_less">Menos</string>
+    <string name="library_show_not_found">Programa não encontrado</string>
+    <plurals name="library_episode_count">
+        <item quantity="one">%d episódio</item>
+        <item quantity="other">%d episódios</item>
+    </plurals>
+</resources>

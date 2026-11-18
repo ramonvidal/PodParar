@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="player_now_playing">Tocando agora</string>
+    <string name="player_close">Fechar player</string>
+    <string name="player_nothing_playing">Nada tocando</string>
+    <string name="player_nothing_playing_body">Oxente, escolha um episódio pra dar uma ouvida.</string>
+    <string name="player_loading">Carregando</string>
+    <string name="player_position">Posição</string>
+    <string name="player_speed_description">Velocidade %1$s</string>
+    <string name="player_speed_remembered">Lembrada pra %1$s</string>
+    <string name="player_skip_back">Voltar %1$d segundos</string>
+    <string name="player_skip_forward">Avançar %1$d segundos</string>
+    <string name="player_sleep_minutes">%1$d min</string>
+    <string name="player_sleep_turn_off">Desligar</string>
+    <string name="player_sleep_running">Soneca: %1$s</string>
+    <string name="player_chapters">Capítulos</string>
+    <string name="player_chapter_previous">Capítulo anterior</string>
+    <string name="player_chapter_next">Próximo capítulo</string>
+</resources>

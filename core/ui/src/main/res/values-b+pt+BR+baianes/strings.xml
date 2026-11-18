@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cancel">Cancelar</string>
+    <string name="retry">Tentar de novo</string>
+    <string name="error_generic">Vixe, deu ruim. Confere sua conexão e tenta de novo.</string>
+    <string name="error_offline">Oxe, você tá sem internet. Confere sua conexão e tenta de novo.</string>
+    <string name="error_not_found">Não achei esse programa.</string>
+    <string name="error_not_a_feed">Esse link não é um feed de podcast.</string>
+    <string name="error_invalid_link">Eita, isso não parece um link.</string>
+    <string name="played">Ouvido</string>
+    <string name="subscribe">Seguir</string>
+    <string name="subscribed">Seguindo</string>
+    <string name="play">Tocar</string>
+    <string name="pause">Pausar</string>
+    <string name="skip_back">Voltar 10 segundos</string>
+    <string name="skip_forward">Avançar 30 segundos</string>
+    <string name="mark_played">Marcar como ouvido</string>
+    <string name="mark_unplayed">Marcar como não ouvido</string>
+    <string name="speed">Velocidade</string>
+    <string name="play_next">Tocar em seguida</string>
+    <string name="add_to_queue">Pôr na fila</string>
+    <string name="remove_from_queue">Tirar da fila</string>
+    <string name="download">Baixar</string>
+    <string name="remove_download">Remover download</string>
+    <string name="go_to_show">Ir para o programa</string>
+    <string name="downloaded">Baixado</string>
+    <string name="downloading">Baixando</string>
+    <string name="downloading_percent">Baixando %1$d%%</string>
+    <string name="download_failed">Falha ao baixar</string>
+    <string name="download_cancel">Cancelar download</string>
+    <string name="download_failed_retry">Deu ruim ao baixar. Toca pra tentar de novo</string>
+    <string name="remove_download_title">Remover esse download?</string>
+    <string name="remove_download_body">O episódio continua na sua lista, mas você vai precisar de internet pra ouvir de novo.</string>
+    <string name="date_today">Hoje</string>
+    <string name="date_yesterday">Ontem</string>
+    <string name="settings">Ajustes</string>
+    <string name="sleep_timer">Temporizador de sono</string>
+    <string name="end_of_episode">Fim do episódio</string>
+</resources>

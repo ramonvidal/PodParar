@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_available">Escutaê %1$s chegou, meu rei</string>
+    <string name="update_install">Instalar</string>
+    <string name="update_later">Depois</string>
+    <string name="update_allow">Pra atualizar, deixa o Escutaê instalar apps (só precisa fazer uma vez).</string>
+    <string name="update_allow_button">Permitir</string>
+    <string name="update_downloading">Baixando…</string>
+    <string name="update_failed">Vixe, não deu pra baixar a atualização. Confere sua conexão.</string>
+    <string name="update_retry">Tentar de novo</string>
+</resources>

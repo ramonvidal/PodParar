@@ -43,6 +43,9 @@ jobs:
       - name: Module structure rules tests
         run: ./gradlew -p build-logic :rules:test
 
+      - name: Translations match
+        run: python3 scripts/check-translations.py
+
       # Every Gradle invocation also checks the module structure (podparar.module-rules).
       # testDebugUnitTest runs in every module that has it: all the libraries and features. :app
       # has flavors, so its tasks are testGithubDebugUnitTest and testPlayDebugUnitTest (it has no tests).
