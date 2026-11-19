@@ -26,8 +26,8 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -51,12 +51,12 @@ internal class WorkManagerEpisodeDownloads @Inject constructor(
 
     override val downloads: Flow<Map<String, Download>> = repository.downloads
 
-    private val limitReachedEvents = MutableSharedFlow<Int>(extraBuffer = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private val limitReachedEvents = MutableSharedFlow<Int>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     override val limitReached: Flow<Int> = limitReachedEvents.asSharedFlow()
 
     override fun download(episodeId: String) {
         // UNDISPATCHED + a fair mutex keep calls in the order they were made (a quick download-then-remove stays removed).
-        scope.launch(start = CoroutineStart.UNDISPATCHED) { mutex.withLock { enqueueLocked(episodeId) } }
+        scope.launch(start = CoroutineStart.UNDISPATCHED) { mutex.withLock { enqueueLocked(episodeId, userRequest = true) } }
     }
 
     override fun remove(episodeId: String) {
