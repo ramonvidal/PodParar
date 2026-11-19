@@ -151,7 +151,7 @@ class HomeViewModelTest {
         val viewModel = HomeViewModel(
             episodes, FakeQueue(), FakePodcasts(), FakePlayer(), FakeDownloads(), settings,
         )
-        val job = backgroundScope.launch { viewModel.uiState.collect {} }
+        val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         assertEquals(listOf(30), episodes.requestedLimits)
         assertEquals(30, viewModel.uiState.value.newEpisodes.size)
